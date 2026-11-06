@@ -203,6 +203,9 @@ namespace ModelProof
             d["coerenza"] = "coherence";
             d["controllo"] = "check";
             d["formato"] = "format";
+            d["non in elenco"] = "not in list";
+            d["«{0}» non è nell'elenco {1}"] = "«{0}» is not in list {1}";
+            d["Struttura giusta, ma {0}"] = "Correct structure, but {0}";
             d["isola elementi"] = "isolate elements";
             d["mancante"] = "missing";
             d["numerazione"] = "numbering";

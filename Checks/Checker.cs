@@ -242,7 +242,11 @@ namespace ModelProof
                     Match m = SafeMatch(rule.Regex, value);
                     if (!m.Success)
                     {
-                        rr.Issues.Add(MakeIssue(rule, t, error, IssueKind.Formato, field, value, L.F("non rispetta il formato {0}", rule.Format)));
+                        List<string> unlisted = ProjectConfig.Unlisted(rule, value);
+                        if (unlisted != null)
+                            rr.Issues.Add(MakeIssue(rule, t, error, IssueKind.Elenco, field, value, string.Join("; ", unlisted)));
+                        else
+                            rr.Issues.Add(MakeIssue(rule, t, error, IssueKind.Formato, field, value, L.F("non rispetta il formato {0}", rule.Format)));
                         continue;
                     }
                     if (fi > 0) continue;   // coerenza e numerazione sul primo campo
@@ -283,6 +287,11 @@ namespace ModelProof
                 if (!g.Success) continue;
                 string actual = g.Value;
                 bool isError = error && !c.Warning;
+                if (isError && c.WarnIfGroup != null)
+                {
+                    RxGroup w = m.Groups[c.WarnIfGroup];
+                    if (w.Success && w.Value == c.WarnIfValue) isError = false;
+                }
                 if (c.Source == null)
                 {
                     if (actual != c.Literal)

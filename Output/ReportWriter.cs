@@ -13,6 +13,7 @@ namespace ModelProof
             {
                 case IssueKind.Mancante: return L.T("mancante");
                 case IssueKind.Formato: return L.T("formato");
+                case IssueKind.Elenco: return L.T("non in elenco");
                 case IssueKind.Coerenza: return L.T("coerenza");
                 case IssueKind.Numerazione: return L.T("numerazione");
                 default: return L.T("controllo");
@@ -55,9 +56,9 @@ namespace ModelProof
                 x.AddRow(sh, XlsxWriter.RowStyle.Header, L.T("Regola"), L.T("Gravità"), L.T("Tipo"), "ID", L.T("Categoria"),
                     L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema"));
                 foreach (RuleResult r in run.Results.Where(r => r.Rule.Chapter == chapter))
-                    foreach (Issue i in r.Issues)
-                        x.AddRow(sh, i.Error ? XlsxWriter.RowStyle.Error : XlsxWriter.RowStyle.Warning,
-                            i.Rule, i.Error ? L.T("errore") : L.T("avviso"), KindText(i.Kind), i.ElementId >= 0 ? (object)i.ElementId : null,
+                    foreach (Issue i in r.Issues.OrderBy(i => i.Priority))
+                        x.AddRow(sh, i.Priority == 0 ? XlsxWriter.RowStyle.Error : i.Priority == 1 ? XlsxWriter.RowStyle.Unlisted : XlsxWriter.RowStyle.Warning,
+                            i.Rule, i.LevelText, KindText(i.Kind), i.ElementId >= 0 ? (object)i.ElementId : null,
                             i.Category, i.FamilyType, i.Field, i.Value, i.Message);
             }
             x.Save(path);

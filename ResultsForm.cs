@@ -247,7 +247,7 @@ namespace ModelProof
             IEnumerable<RuleResult> source = selected.Count > 0 ? selected : _run.Results;
             IEnumerable<Issue> all = source.SelectMany(r => r.Issues);
             if (_onlyErrors.Checked) all = all.Where(i => i.Error);
-            return all.ToList();
+            return all.OrderBy(i => i.Priority).ToList();   // OrderBy è stabile: dentro la priorità resta l'ordine della verifica
         }
 
         private List<Issue> SelectedIssues()
@@ -285,14 +285,14 @@ namespace ModelProof
                     groups[i.Rule] = g;
                     _issues.Groups.Add(g);
                 }
-                var it = new ListViewItem(i.Error ? L.T("errore") : L.T("avviso"), g) { Tag = i };
+                var it = new ListViewItem(i.LevelText, g) { Tag = i };
                 it.SubItems.Add(i.ElementId >= 0 ? i.ElementId.ToString() : "");
                 it.SubItems.Add(i.Category);
                 it.SubItems.Add(i.FamilyType);
                 it.SubItems.Add(i.Field);
                 it.SubItems.Add(i.Value);
                 it.SubItems.Add(i.Message);
-                it.ForeColor = i.Error ? Color.FromArgb(190, 40, 40) : Color.FromArgb(160, 90, 0);
+                it.ForeColor = i.Priority == 0 ? Color.FromArgb(190, 40, 40) : i.Priority == 1 ? Color.FromArgb(120, 60, 170) : Color.FromArgb(160, 90, 0);
                 _issues.Items.Add(it);
             }
             _issues.EndUpdate();
@@ -343,7 +343,7 @@ namespace ModelProof
                         foreach (Issue i in r.Issues)
                             sb.AppendLine(string.Join(";", new[]
                             {
-                                r.Rule.Chapter, i.Rule, i.Error ? L.T("errore") : L.T("avviso"), i.Kind.ToString(), i.ElementId >= 0 ? i.ElementId.ToString() : "",
+                                r.Rule.Chapter, i.Rule, i.LevelText, i.Kind.ToString(), i.ElementId >= 0 ? i.ElementId.ToString() : "",
                                 i.Category, i.FamilyType, i.Field, i.Value, i.Message
                             }.Select(Csv)));
                     File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));

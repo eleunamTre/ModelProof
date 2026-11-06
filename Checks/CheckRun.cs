@@ -8,7 +8,8 @@ namespace ModelProof
     internal enum IssueKind
     {
         Mancante,     // parametro assente o non compilato
-        Formato,      // compilato ma non rispetta il formato
+        Formato,      // compilato ma non rispetta il formato (struttura sbagliata)
+        Elenco,       // struttura giusta, ma un codice non è negli elenchi del file (codice sbagliato o elenco da completare)
         Coerenza,     // parti che non coincidono con la fonte
         Numerazione,  // doppioni o salti
         Controllo     // controlli già pronti (coordinate, livelli, …)
@@ -27,6 +28,10 @@ namespace ModelProof
         public string Field = "";
         public string Value = "";
         public string Message = "";
+
+        /// <summary>Priorità: 0 errore di struttura, 1 codice non in elenco, 2 avviso.</summary>
+        public int Priority { get { return !Error ? 2 : Kind == IssueKind.Elenco ? 1 : 0; } }
+        public string LevelText { get { return !Error ? L.T("avviso") : Kind == IssueKind.Elenco ? L.T("non in elenco") : L.T("errore"); } }
     }
 
     /// <summary>Esito di una regola su un modello.</summary>

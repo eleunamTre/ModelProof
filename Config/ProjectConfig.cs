@@ -52,10 +52,13 @@ namespace ModelProof
         public string SourceGroup;     // parte della fonte, es. CAT
         public string Literal;         // testo fisso atteso (se Source è null)
         public bool Warning;           // «(avviso)»: segnalato come avviso anche se la regola è un errore
+        public string WarnIfGroup;     // «(avviso se PARTE = "testo")»: avviso solo quando quella parte vale il testo
+        public string WarnIfValue;
 
         public override string ToString()
         {
-            return Group + " = " + (Source == null ? "\"" + Literal + "\"" : Source + "." + SourceGroup) + (Warning ? " (avviso)" : "");
+            return Group + " = " + (Source == null ? "\"" + Literal + "\"" : Source + "." + SourceGroup) +
+                (Warning ? " (avviso)" : WarnIfGroup != null ? " (avviso se " + WarnIfGroup + " = \"" + WarnIfValue + "\")" : "");
         }
     }
 
@@ -80,6 +83,8 @@ namespace ModelProof
         public List<string> Fields = new List<string>();
         public string Format;          // testo del formato, vuoto = basta che sia compilato
         public Regex Regex;            // formato compilato (null se non c'è o non è valido)
+        public Regex LooseRegex;       // stesso formato con gli elenchi sostituiti dalla sola forma dei codici (null se non ha elenchi)
+        public List<ListSlot> LooseLists = new List<ListSlot>();   // elenchi del formato largo: gruppo «__L0», «__L1»…
         public string Severity;        // errore | avviso
         public List<string> TestYes = new List<string>();
         public List<string> TestNo = new List<string>();
@@ -100,6 +105,13 @@ namespace ModelProof
         public bool IsControl { get { return Control != null; } }
         public bool AppliesTo(string role) { return role != null && Models.Contains(role); }
         public string Get(string key) { return Section.Get(key); }
+    }
+
+    /// <summary>Elenco usato in un formato: nel formato largo il codice letto finisce nel gruppo «__L» + indice.</summary>
+    internal sealed class ListSlot
+    {
+        public string List;
+        public HashSet<string> Codes;
     }
 
     /// <summary>Riga della sezione [CHECKLIST]: dove va l'esito delle regole.</summary>
@@ -233,7 +245,7 @@ namespace ModelProof
         /// <summary>Fonti ammesse nella coerenza.</summary>
         public static readonly string[] Sources = { "nome", "nome tipo", "nome famiglia", "type mark", "livello", "file" };
 
-        private static readonly Regex RxCoherence = new Regex("^(\\w+)\\s*=\\s*(?:\"([^\"]*)\"|([^.]+?)\\.(\\w+))\\s*(\\(avviso\\))?$", RegexOptions.CultureInvariant);
+        private static readonly Regex RxCoherence = new Regex("^(\\w+)\\s*=\\s*(?:\"([^\"]*)\"|([^.]+?)\\.(\\w+))\\s*(?:\\(avviso(?:\\s+se\\s+(\\w+)\\s*=\\s*\"([^\"]*)\")?\\))?$", RegexOptions.CultureInvariant);
         private static readonly Regex RxNumbering = new Regex(@"^(\w+)(?:\s+per\s+(.+))?$", RegexOptions.CultureInvariant);
 
         private void ReadRules()
@@ -300,6 +312,7 @@ namespace ModelProof
                         string pattern = CompileFormat(r.Format, new HashSet<string>(StringComparer.Ordinal));
                         r.Regex = new Regex("^" + pattern + "$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
                         Log.Debug("Configurazione", where + ": ^" + pattern + "$");
+                        CompileLoose(r);
                     }
                     catch (ConfigException ex) { Add(IssueLevel.Errore, s.Find("formato").Line, where, ex.Message); }
                     catch (ArgumentException ex) { Add(IssueLevel.Errore, s.Find("formato").Line, where, L.F("formato non valido: {0}", ex.Message)); }
@@ -364,7 +377,11 @@ namespace ModelProof
                         Add(IssueLevel.Errore, ce.Line, where, L.F("coerenza «{0}» non riconosciuta: si scrive PARTE = fonte.PARTE oppure PARTE = \"testo\"", clause));
                         continue;
                     }
-                    var c = new Coherence { Group = m.Groups[1].Value, Warning = m.Groups[5].Success };
+                    var c = new Coherence { Group = m.Groups[1].Value };
+                    if (m.Groups[5].Success) { c.WarnIfGroup = m.Groups[5].Value; c.WarnIfValue = m.Groups[6].Value; }
+                    else c.Warning = clause.TrimEnd().EndsWith("(avviso)", StringComparison.Ordinal);
+                    if (c.WarnIfGroup != null && r.Regex != null && !HasGroup(r.Regex, c.WarnIfGroup))
+                        Add(IssueLevel.Errore, ce.Line, where, L.F("coerenza: il formato non ha la parte {{{0}}}", c.WarnIfGroup));
                     if (m.Groups[2].Success) c.Literal = m.Groups[2].Value;
                     else
                     {
@@ -579,19 +596,59 @@ namespace ModelProof
 
         // ================================================================== segnaposto e formati
 
+        // Formato «largo»: ogni elenco diventa la sola forma dei suoi codici (lettere/cifre e lunghezza), dentro un gruppo
+        // «__L» + indice. Un valore che non rispetta il formato ma rispetta quello largo ha la struttura giusta e un
+        // codice che non è nell'elenco del file: va segnalato a parte (codice sbagliato o elenco da completare).
+        private List<ListSlot> _loose;
+
+        private void CompileLoose(Rule r)
+        {
+            _loose = new List<ListSlot>();
+            try
+            {
+                string pattern = CompileFormat(r.Format, new HashSet<string>(StringComparer.Ordinal));
+                if (_loose.Count == 0) return;
+                r.LooseRegex = new Regex("^" + pattern + "$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+                r.LooseLists = _loose;
+            }
+            catch (Exception ex) when (ex is ConfigException || ex is ArgumentException)
+            {
+                Log.Debug("Configurazione", r.Name + ": formato largo non disponibile (" + ex.Message + ")");
+            }
+            finally { _loose = null; }
+        }
+
+        /// <summary>Forma dei codici: classi di caratteri e lunghezze; i codici con altri caratteri restano tali e quali.</summary>
+        private static string CodeShape(List<string> codes)
+        {
+            var alnum = codes.Where(c => c.All(ch => (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'))).ToList();
+            var parts = new List<string>();
+            if (alnum.Count > 0)
+            {
+                var cls = new StringBuilder("[");
+                if (alnum.Any(c => c.Any(ch => ch >= 'A' && ch <= 'Z'))) cls.Append("A-Z");
+                if (alnum.Any(c => c.Any(ch => ch >= 'a' && ch <= 'z'))) cls.Append("a-z");
+                if (alnum.Any(c => c.Any(ch => ch >= '0' && ch <= '9'))) cls.Append("0-9");
+                int min = alnum.Min(c => c.Length), max = alnum.Max(c => c.Length);
+                parts.Add(cls.Append(']').ToString() + (min == max ? (min == 1 ? "" : "{" + min + "}") : "{" + min + "," + max + "}"));
+            }
+            foreach (string c in codes.Except(alnum)) parts.Add(Regex.Escape(c));
+            return "(?:" + string.Join("|", parts) + ")";
+        }
+
         /// <summary>Modello (regex senza ancore) del segnaposto, compilato una volta sola.</summary>
         public string CompilePlaceholder(string name, HashSet<string> stack)
         {
             Placeholder p;
             if (!Placeholders.TryGetValue(name, out p)) throw new ConfigException(L.F("segnaposto {{{0}}} non definito in [SEGNAPOSTO]", name));
-            if (p.Pattern != null) return p.Pattern;
+            if (p.Pattern != null && _loose == null) return p.Pattern;
             if (p.Error != null) throw new ConfigException(L.F("segnaposto {{{0}}} non valido", name));
             if (!stack.Add(name)) throw new ConfigException(L.F("il segnaposto {{{0}}} rimanda a se stesso", name));
             try
             {
                 string pattern = CompileDescription(p.Description, stack);
                 new Regex(pattern, RegexOptions.CultureInvariant);   // verifica
-                p.Pattern = pattern;
+                if (_loose == null) p.Pattern = pattern;
                 return pattern;
             }
             catch (ArgumentException ex)
@@ -693,6 +750,11 @@ namespace ModelProof
                 list.Referenced = true;
                 List<string> codes = list.Codes(column).Distinct(StringComparer.Ordinal).OrderByDescending(c => c.Length).ToList();
                 if (codes.Count == 0) throw new ConfigException(L.F("l'elenco [{0}] non ha codici nella colonna {1}", name, column));
+                if (_loose != null)
+                {
+                    _loose.Add(new ListSlot { List = name, Codes = new HashSet<string>(codes, StringComparer.Ordinal) });
+                    return "(?<__L" + (_loose.Count - 1) + ">" + CodeShape(codes) + ")";
+                }
                 return "(?:" + string.Join("|", codes.Select(c => Regex.Escape(c))) + ")";
             }
 
@@ -812,18 +874,51 @@ namespace ModelProof
             return (p > 0 ? name.Substring(0, p) : name).Trim();
         }
 
+        /// <summary>
+        /// Per un valore che non rispetta il formato: se la struttura è giusta e mancano solo codici dagli elenchi,
+        /// i messaggi ««XX» non è nell'elenco NOME»; altrimenti null (struttura sbagliata).
+        /// </summary>
+        public static List<string> Unlisted(Rule rule, string value)
+        {
+            if (rule.LooseRegex == null) return null;
+            Match m;
+            try { m = rule.LooseRegex.Match(value ?? ""); }
+            catch (RegexMatchTimeoutException) { return null; }
+            if (!m.Success) return null;
+            var msgs = new List<string>();
+            for (int k = 0; k < rule.LooseLists.Count; k++)
+            {
+                Group g = m.Groups["__L" + k];
+                if (!g.Success) continue;
+                foreach (Capture cap in g.Captures)
+                {
+                    if (rule.LooseLists[k].Codes.Contains(cap.Value)) continue;
+                    string msg = L.F("«{0}» non è nell'elenco {1}", cap.Value, rule.LooseLists[k].List);
+                    if (!msgs.Contains(msg)) msgs.Add(msg);
+                }
+            }
+            return msgs.Count > 0 ? msgs : null;
+        }
+
         /// <summary>Prova un valore con una regola: esito e parti riconosciute (per la finestra di prova).</summary>
         public static string Explain(Rule rule, string value)
         {
             if (rule == null || rule.Regex == null) return L.T("La regola non ha un formato da provare.");
+            value = value ?? "";
             Match m;
             try { m = rule.Regex.Match(value ?? ""); }
             catch (RegexMatchTimeoutException) { return L.T("Prova interrotta: il formato è troppo complesso per questo valore."); }
-            if (!m.Success) return L.F("NON rispetta il formato {0}", rule.Format);
+            if (!m.Success)
+            {
+                List<string> unlisted = Unlisted(rule, value);
+                return unlisted != null
+                    ? L.F("Struttura giusta, ma {0}", string.Join("; ", unlisted))
+                    : L.F("NON rispetta il formato {0}", rule.Format);
+            }
             var parts = new List<string>();
             foreach (string g in rule.Regex.GetGroupNames())
             {
-                if (char.IsDigit(g[0])) continue;
+                if (char.IsDigit(g[0]) || g.StartsWith("__L", StringComparison.Ordinal)) continue;
                 Group grp = m.Groups[g];
                 if (grp.Success) parts.Add(g + " = " + grp.Value);
             }

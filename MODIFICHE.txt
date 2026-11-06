@@ -74,3 +74,14 @@ ModelProof – registro delle modifiche
      modello», attivo di base); doppio clic o «Inquadra» li inquadra; «Isola nella vista» li isola temporaneamente
      nella vista attiva (occhiali, non si salva) e «Ripristina vista» toglie l'isolamento; «Seleziona tutte» prende
      tutte le anomalie visibili. Senza righe selezionate, Inquadra e Isola usano tutte le anomalie visibili.
+
+10. Priorità delle anomalie e avviso condizionato nella coerenza:
+   - nei formati con elenchi, un valore con la struttura giusta ma un codice che non è nell'elenco del file di
+     configurazione diventa «non in elenco» (viola) invece di «errore» (rosso): il messaggio dice quale codice manca e
+     in quale elenco, così si capisce se correggere il modello o completare l'elenco. Si ottiene con un secondo
+     formato «largo» in cui ogni elenco è sostituito dalla forma dei suoi codici (lettere/cifre e lunghezza);
+   - le anomalie sono ordinate per priorità (errori di struttura, non in elenco, avvisi) nella finestra, nel CSV e nei
+     fogli dell'Excel (nuovo stile viola); conta sempre come errore per l'esito;
+   - coerenza: nuova forma «(avviso se PARTE = "testo")», solo avviso quando quella parte del valore è il testo
+     indicato (es. una zona particolare in cui gli elementi stanno sul livello della loro quota);
+   - la prova di una regola nella finestra di configurazione mostra anche «Struttura giusta, ma …».

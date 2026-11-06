@@ -14,7 +14,7 @@ namespace ModelProof
     internal sealed class XlsxWriter
     {
         /// <summary>Stile di una riga.</summary>
-        public enum RowStyle { Normal = 0, Header = 1, Error = 2, Warning = 3, Title = 4 }
+        public enum RowStyle { Normal = 0, Header = 1, Error = 2, Warning = 3, Title = 4, Unlisted = 5 }
 
         private sealed class Sheet
         {
@@ -143,23 +143,25 @@ namespace ModelProof
         {
             return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
                 "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">" +
-                "<fonts count=\"5\">" +
+                "<fonts count=\"6\">" +
                 "<font><sz val=\"10\"/><name val=\"Calibri\"/></font>" +
                 "<font><b/><sz val=\"10\"/><name val=\"Calibri\"/></font>" +
                 "<font><sz val=\"10\"/><color rgb=\"FFBE2828\"/><name val=\"Calibri\"/></font>" +
                 "<font><sz val=\"10\"/><color rgb=\"FFA05A00\"/><name val=\"Calibri\"/></font>" +
                 "<font><b/><sz val=\"13\"/><name val=\"Calibri\"/></font>" +
+                "<font><sz val=\"10\"/><color rgb=\"FF783CAA\"/><name val=\"Calibri\"/></font>" +
                 "</fonts>" +
                 "<fills count=\"3\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill>" +
                 "<fill><patternFill patternType=\"solid\"><fgColor rgb=\"FFD9D9D9\"/><bgColor indexed=\"64\"/></patternFill></fill></fills>" +
                 "<borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders>" +
                 "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>" +
-                "<cellXfs count=\"5\">" +
+                "<cellXfs count=\"6\">" +
                 "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"><alignment vertical=\"top\"/></xf>" +
                 "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"2\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\"><alignment vertical=\"top\"/></xf>" +
                 "<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"><alignment vertical=\"top\"/></xf>" +
                 "<xf numFmtId=\"0\" fontId=\"3\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"><alignment vertical=\"top\"/></xf>" +
                 "<xf numFmtId=\"0\" fontId=\"4\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/>" +
+                "<xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"><alignment vertical=\"top\"/></xf>" +
                 "</cellXfs>" +
                 "<cellStyles count=\"1\"><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/></cellStyles>" +
                 "</styleSheet>";
