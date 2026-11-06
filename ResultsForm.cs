@@ -284,8 +284,9 @@ namespace ModelProof
                 ListViewGroup g;
                 if (!groups.TryGetValue(i.Rule, out g))
                 {
-                    int n = list.Count(x => x.Rule == i.Rule);
-                    g = new ListViewGroup(i.Rule, L.F("{0}  –  {1} anomalie", i.Rule, n));
+                    int n = list.Count(x => x.Rule == i.Rule && !x.Info);
+                    int d = list.Count(x => x.Rule == i.Rule && x.Info);
+                    g = new ListViewGroup(i.Rule, d == 0 ? L.F("{0}  –  {1} anomalie", i.Rule, n) : L.F("{0}  –  {1} anomalie, {2} righe di dettaglio", i.Rule, n, d));
                     groups[i.Rule] = g;
                     _issues.Groups.Add(g);
                 }
@@ -297,7 +298,7 @@ namespace ModelProof
                 it.SubItems.Add(i.Field);
                 it.SubItems.Add(i.Value);
                 it.SubItems.Add(i.Message);
-                it.ForeColor = i.Priority == 0 ? Color.FromArgb(190, 40, 40) : i.Priority == 1 ? Color.FromArgb(120, 60, 170) : Color.FromArgb(160, 90, 0);
+                it.ForeColor = i.Priority == 0 ? Color.FromArgb(190, 40, 40) : i.Priority == 1 ? Color.FromArgb(120, 60, 170) : i.Priority == 2 ? Color.FromArgb(160, 90, 0) : Color.FromArgb(90, 90, 90);
                 _issues.Items.Add(it);
             }
             _issues.EndUpdate();

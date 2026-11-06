@@ -627,6 +627,8 @@ namespace ModelProof
                 rr.Checked++;
                 int before = rr.Issues.Count;
                 string who = m == _info ? L.T("questo modello") : L.T("collegamento");
+                rr.Issues.Add(InfoRow(rule, m.FileName, m.RoleText, who, m.RoleCode + " / " + m.Description,
+                    L.F("dal codice: {0}; dalla descrizione: {1}", m.RoleText, m.DescriptionRole ?? "?")));
                 if (m.Role == null)
                 {
                     string guess = m.DescriptionRole != null ? L.F(" (dalla descrizione sembra {0})", m.DescriptionRole) : "";
@@ -656,9 +658,11 @@ namespace ModelProof
                 rr.Issues.Add(ControlIssue(rule, error, L.T("nome file"), _info.FileName, L.T("codice edificio non letto dal nome del file")));
                 return;
             }
+            rr.Issues.Add(InfoRow(rule, _info.FileName, _info.RoleText, L.T("Codice edificio"), _info.Building, L.T("file verificato")));
             foreach (LinkedModel l in _links.Where(x => x.Info.Role != null))
             {
                 rr.Checked++;
+                rr.Issues.Add(InfoRow(rule, l.Info.FileName, l.Info.RoleText, L.T("Codice edificio"), l.Info.Building ?? "", L.T("collegamento")));
                 if (!string.Equals(l.Info.Building, _info.Building, StringComparison.Ordinal))
                 {
                     Issue i = ControlIssue(rule, error, L.T("nome file"), l.Info.FileName,
@@ -686,9 +690,31 @@ namespace ModelProof
 
         private static double TrueNorthDegrees(Document doc)
         {
-            double rad = doc.ActiveProjectLocation.GetProjectPosition(XYZ.Zero).Angle;
+            return Degrees(doc.ActiveProjectLocation.GetProjectPosition(XYZ.Zero).Angle);
+        }
+
+        private static double Degrees(double rad)
+        {
             double deg = rad * 180.0 / Math.PI % 360.0;
             return deg < 0 ? deg + 360.0 : deg;
+        }
+
+        public static string Deg(double d)
+        {
+            return double.IsNaN(d) ? "" : d.ToString("F4", CultureInfo.InvariantCulture) + "°";
+        }
+
+        private static double AngleDiff(double a, double b)
+        {
+            return Math.Abs((a - b + 540.0) % 360.0 - 180.0);
+        }
+
+        /// <summary>Riga di dettaglio (valore letto), mostrata anche quando la regola è conforme.</summary>
+        private static Issue InfoRow(Rule rule, string file, string role, string field, string value, string message, Element e = null)
+        {
+            var i = new Issue { Rule = rule.Name, Info = true, Kind = IssueKind.Controllo, File = file ?? "", Role = role ?? "", Field = field ?? "", Value = value ?? "", Message = message ?? "" };
+            if (e != null) { i.ElementId = e.Id.Value; i.ShowId = e.Id.Value; i.FamilyType = e.Name ?? ""; try { i.Category = e.Category != null ? e.Category.Name : ""; } catch { } }
+            return i;
         }
 
 
@@ -714,6 +740,13 @@ namespace ModelProof
             row.Survey = Meters(BasePointCoordinates(doc, true));
             row.BasePoint = Meters(BasePointCoordinates(doc, false));
             try { row.North = TrueNorthDegrees(doc); } catch { }
+            try
+            {
+                BasePoint pbp = new FilteredElementCollector(doc).OfClass(typeof(BasePoint)).Cast<BasePoint>().FirstOrDefault(b => !b.IsShared);
+                Parameter a = pbp != null ? pbp.get_Parameter(BuiltInParameter.BASEPOINT_ANGLETON_PARAM) : null;
+                if (a != null) row.ProjectNorth = Degrees(a.AsDouble());
+            }
+            catch { }
             // senza coordinate condivise la posizione attiva coincide con il sistema interno (nessuno spostamento né rotazione)
             try
             {
@@ -764,8 +797,13 @@ namespace ModelProof
                     row.Problems.Add(L.F("Project Base Point diverso: scarto {0:F1} mm", DistMm(row.BasePoint, me.BasePoint)));
                 if (!double.IsNaN(row.North) && !double.IsNaN(me.North))
                 {
-                    double da = Math.Abs((row.North - me.North + 540.0) % 360.0 - 180.0);
+                    double da = AngleDiff(row.North, me.North);
                     if (da > tolDeg) row.Problems.Add(L.F("nord reale diverso: scarto {0}°", da.ToString("F4", CultureInfo.InvariantCulture)));
+                }
+                if (!double.IsNaN(row.ProjectNorth) && !double.IsNaN(me.ProjectNorth))
+                {
+                    double da = AngleDiff(row.ProjectNorth, me.ProjectNorth);
+                    if (da > tolDeg) row.Problems.Add(L.F("angolo nord di progetto / nord reale del Project Base Point diverso: scarto {0}°", da.ToString("F4", CultureInfo.InvariantCulture)));
                 }
                 _coords.Add(row);
             }
@@ -781,6 +819,15 @@ namespace ModelProof
             {
                 rr.Checked++;
                 LinkedModel link = row.Host ? null : _links.FirstOrDefault(l => l.Info.FileName == row.File);
+                string who = row.Host ? L.T("file verificato") : L.T("collegamento");
+                rr.Issues.Add(InfoRow(rule, row.File, row.Role, "Survey Point", Coord(row.Survey), who));
+                rr.Issues.Add(InfoRow(rule, row.File, row.Role, "Project Base Point", Coord(row.BasePoint), who));
+                rr.Issues.Add(InfoRow(rule, row.File, row.Role, L.T("Nord di progetto → nord reale (PBP)"), Deg(row.ProjectNorth), who));
+                rr.Issues.Add(InfoRow(rule, row.File, row.Role, L.T("Nord reale (posizione condivisa)"), Deg(row.North), who));
+                rr.Issues.Add(InfoRow(rule, row.File, row.Role, L.T("Coordinate condivise nel file"), row.SharedDefined ? L.T("sì") : L.T("no"), who));
+                if (!row.Host)
+                    rr.Issues.Add(InfoRow(rule, row.File, row.Role, L.T("Collegato in coordinate condivise"), row.LinkShared == true ? L.T("sì") : L.T("no"),
+                        L.F("scarto {0:F1} mm, rotazione {1}", row.LinkOffsetMm, Deg(row.LinkRotDeg)), link != null ? link.Instance : null));
                 foreach (string p in row.Problems)
                 {
                     Issue i = ControlIssue(rule, error, row.Host ? L.T("questo modello") : L.T("collegamento"), Coord(row.Survey), p,
@@ -824,6 +871,8 @@ namespace ModelProof
                     continue;
                 }
                 double d = Math.Abs(z - other) * FeetToMm;
+                rr.Issues.Add(InfoRow(rule, _info.FileName, _info.RoleText, L.T("Quota"), (z * 0.3048).ToString("F3", CultureInfo.InvariantCulture) + " m",
+                    L.F("{0}: in {1} {2} m", l.Name, RefName(rule), (other * 0.3048).ToString("F3", CultureInfo.InvariantCulture)), l));
                 if (d > rule.ToleranceMm)
                     rr.Issues.Add(ControlIssue(rule, error, L.T("Quota"), (z * 0.3048).ToString("F3", CultureInfo.InvariantCulture) + " m",
                         L.F("in {0} la quota è {1} m: scarto {2:F1} mm", RefName(rule), (other * 0.3048).ToString("F3", CultureInfo.InvariantCulture), d), l));
@@ -843,6 +892,8 @@ namespace ModelProof
                 try { monitored = l.IsMonitoringLinkElement(); } catch { }
                 if (!monitored)
                     rr.Issues.Add(ControlIssue(rule, error, L.T("Nome"), l.Name, L.F("livello non controllato (copy/monitor) da un collegamento {0}", RefName(rule)), l));
+                else
+                    rr.Issues.Add(InfoRow(rule, _info.FileName, _info.RoleText, L.T("Nome"), l.Name, L.T("controllato con copy/monitor"), l));
             }
         }
 

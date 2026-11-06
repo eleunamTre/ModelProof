@@ -22,6 +22,7 @@ namespace ModelProof
         public string File = "";       // file in cui sta il problema (il modello verificato o un collegamento)
         public string Role = "";       // ruolo di quel file (URS, ARC, IMP o «?»)
         public bool Error;             // false = avviso
+        public bool Info;              // riga di dettaglio (valori letti), non è un'anomalia e non si conta
         public IssueKind Kind;
         public long ElementId = -1;    // oggetto controllato (-1 = nessuno)
         public long ShowId = -1;       // elemento da inquadrare (per tipi e famiglie: una loro istanza)
@@ -32,8 +33,8 @@ namespace ModelProof
         public string Message = "";
 
         /// <summary>Priorità: 0 errore di struttura, 1 codice non in elenco, 2 avviso.</summary>
-        public int Priority { get { return !Error ? 2 : Kind == IssueKind.Elenco ? 1 : 0; } }
-        public string LevelText { get { return !Error ? L.T("avviso") : Kind == IssueKind.Elenco ? L.T("non in elenco") : L.T("errore"); } }
+        public int Priority { get { return Info ? 3 : !Error ? 2 : Kind == IssueKind.Elenco ? 1 : 0; } }
+        public string LevelText { get { return Info ? L.T("dettaglio") : !Error ? L.T("avviso") : Kind == IssueKind.Elenco ? L.T("non in elenco") : L.T("errore"); } }
     }
 
     /// <summary>Esito di una regola su un modello.</summary>
@@ -46,7 +47,7 @@ namespace ModelProof
         public readonly List<Issue> Issues = new List<Issue>();
 
         public int Errors { get { return Issues.Count(i => i.Error); } }
-        public int Warnings { get { return Issues.Count(i => !i.Error); } }
+        public int Warnings { get { return Issues.Count(i => !i.Error && !i.Info); } }
         /// <summary>Oggetti diversi con almeno un errore.</summary>
         public int FailedObjects { get { return Issues.Where(i => i.Error).Select(i => i.ElementId).Distinct().Count(); } }
     }
@@ -73,7 +74,8 @@ namespace ModelProof
         public bool Host;              // il file verificato
         public double[] Survey;        // Survey Point E/W, N/S, quota in coordinate condivise (m); null = non trovato
         public double[] BasePoint;     // Project Base Point, idem
-        public double North = double.NaN;   // angolo tra nord di progetto e nord reale (gradi)
+        public double North = double.NaN;   // angolo tra nord di progetto e nord reale dalla posizione condivisa (gradi)
+        public double ProjectNorth = double.NaN;   // «Angle to True North» del Project Base Point (gradi)
         public bool SharedDefined;     // il file ha un sistema di coordinate condivise diverso da quello interno
         public bool? LinkShared;       // solo collegamenti: posizionato in coordinate condivise
         public double LinkOffsetMm;    // scarto della posizione del collegamento rispetto a quella condivisa

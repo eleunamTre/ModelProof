@@ -111,3 +111,14 @@ ModelProof – registro delle modifiche
      nord reale diversi da quelli del file verificato (tolleranze della regola). Ogni anomalia indica il file;
    - nuovo pulsante «Coordinate...» nella finestra dei risultati con la tabella dei valori, e nuovo foglio
      «Coordinate» nell'Excel.
+
+14. Righe di dettaglio e nord di progetto:
+   - le anomalie possono essere anche righe di «dettaglio» (grigie, non contate né nell'esito né negli avvisi) con i
+     valori letti: così i controlli conformi mostrano comunque cosa è stato verificato. Le hanno: coordinate (Survey
+     Point, Project Base Point, nord, coordinate condivise, posizionamento di ogni collegamento), nome file (codice e
+     descrizione di ogni file), stesso edificio (codice di ogni file), livelli uguali al riferimento (quote di ogni
+     livello nei due modelli), copy monitor (livelli controllati). Sono in fondo all'elenco, escluse da «Solo errori»,
+     e finiscono anche nel CSV e nei fogli dell'Excel;
+   - nuovo valore «Nord di progetto → nord reale (PBP)»: l'angolo «Angle to True North» del Project Base Point,
+     confrontato tra i file come il nord reale della posizione condivisa; colonna nella tabella «Coordinate...» e
+     nel foglio «Coordinate».

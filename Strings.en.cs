@@ -196,6 +196,16 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["Codice edificio"] = "Building code";
+            d["Nord di progetto → nord reale (PBP)"] = "Project north → true north (PBP)";
+            d["Nord reale (posizione condivisa)"] = "True north (shared position)";
+            d["angolo nord di progetto / nord reale del Project Base Point diverso: scarto {0}°"] = "different Project Base Point angle between project north and true north: offset {0}°";
+            d["controllato con copy/monitor"] = "monitored with copy/monitor";
+            d["dal codice: {0}; dalla descrizione: {1}"] = "from the code: {0}; from the description: {1}";
+            d["dettaglio"] = "detail";
+            d["scarto {0:F1} mm, rotazione {1}"] = "offset {0:F1} mm, rotation {1}";
+            d["{0}  –  {1} anomalie, {2} righe di dettaglio"] = "{0}  –  {1} issues, {2} detail rows";
+            d["{0}: in {1} {2} m"] = "{0}: in {1} {2} m";
             d["Collegato in coordinate condivise"] = "Linked by shared coordinates";
             d["Conforme"] = "Compliant";
             d["Coordinate"] = "Coordinates";
