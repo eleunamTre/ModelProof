@@ -98,7 +98,6 @@ namespace ModelProof
             d["Controllati"] = "Checked";
             d["Errori"] = "Errors";
             d["Esito"] = "Result";
-            d["Esporta CSV..."] = "Export CSV...";
             d["Esporta le anomalie"] = "Export the issues";
             d["Famiglia / tipo"] = "Family / type";
             d["Gravità"] = "Severity";
@@ -107,7 +106,6 @@ namespace ModelProof
             d["Il progetto attivo non è quello verificato: attiva la sua finestra e riprova."] = "The active project is not the checked one: activate its window and try again.";
             d["Materiali"] = "Materials";
             d["ModelProof – Risultati della verifica"] = "ModelProof – Check results";
-            d["Mostra nel modello"] = "Show in model";
             d["Nome"] = "Name";
             d["Nord reale"] = "True North";
             d["Note"] = "Notes";
@@ -167,8 +165,6 @@ namespace ModelProof
             d["serve «controllo» oppure «oggetto»"] = "«controllo» or «oggetto» is required";
             d["valore diverso dal formato atteso {0}"] = "value different from the expected format {0}";
             d["{0}  –  modello {1}, edificio {2}  –  {3} errori, {4} avvisi  –  {5:dd/MM/yyyy HH:mm}, {6:F1} s"] = "{0}  –  model {1}, building {2}  –  {3} errors, {4} warnings  –  {5:dd/MM/yyyy HH:mm}, {6:F1} s";
-            d["{0} anomalie, mostrate le prime {1} (tutte nel CSV). Doppio clic: mostra l'elemento nel modello."] = "{0} issues, first {1} shown (all in the CSV). Double click: show the element in the model.";
-            d["{0} anomalie. Doppio clic: mostra l'elemento nel modello."] = "{0} issues. Double click: show the element in the model.";
             d["{0} ha {1}°: scarto {2}°"] = "{0} has {1}°: offset {2}°";
             d["{0} è «{1}», atteso «{2}»"] = "{0} is «{1}», expected «{2}»";
             d["{0} è «{1}», ma in {2} è «{3}»"] = "{0} is «{1}», but in {2} it is «{3}»";
@@ -185,6 +181,36 @@ namespace ModelProof
             d["Collegamenti: {0}."] = "Links: {0}.";
             d["Nessun modello Revit collegato."] = "No linked Revit model.";
             d["«se_assente» deve essere errore, avviso o ignora"] = "«se_assente» must be errore, avviso or ignora";
+            d["CSV..."] = "CSV...";
+            d["Data"] = "Date";
+            d["Durata (s)"] = "Duration (s)";
+            d["Edificio"] = "Building";
+            d["Esporta Excel..."] = "Export Excel...";
+            d["Esporta i risultati"] = "Export the results";
+            d["File"] = "File";
+            d["Inquadra"] = "Zoom to";
+            d["Isola nella vista"] = "Isolate in view";
+            d["ModelProof – verifica del modello"] = "ModelProof – model check";
+            d["Modello"] = "Model";
+            d["Nella vista attiva non si possono isolare questi elementi (es. vista abaco o tavola)."] = "These elements cannot be isolated in the active view (e.g. schedule or sheet view).";
+            d["Nota"] = "Note";
+            d["Regole"] = "Rules";
+            d["Ripristina vista"] = "Reset view";
+            d["Seleziona nel modello"] = "Select in model";
+            d["Seleziona tutte"] = "Select all";
+            d["Sezione"] = "Section";
+            d["Sintesi"] = "Summary";
+            d["coerenza"] = "coherence";
+            d["controllo"] = "check";
+            d["formato"] = "format";
+            d["isola elementi"] = "isolate elements";
+            d["mancante"] = "missing";
+            d["numerazione"] = "numbering";
+            d["ripristina vista"] = "reset view";
+            d["{0}  –  {1} anomalie"] = "{0}  –  {1} issues";
+            d["{0}  –  {1} errori, {2} avvisi"] = "{0}  –  {1} errors, {2} warnings";
+            d["{0} anomalie, mostrate le prime {1} (tutte nell'Excel). Doppio clic: inquadra."] = "{0} issues, first {1} shown (all in the Excel file). Double click: zoom to.";
+            d["{0} anomalie. Doppio clic: inquadra; Ctrl+A: tutte."] = "{0} issues. Double click: zoom to; Ctrl+A: all.";
         }
     }
 }

@@ -73,6 +73,7 @@ namespace ModelProof
         public string Name;
         public int Line;
         public ConfigSection Section;
+        public string Chapter;         // «sezione» del report (raggruppa le regole); se manca, il nome della regola
         public List<string> Models = new List<string>();
         public string Control;         // controllo già pronto (minuscolo), null se è una regola di campi
         public string Object;          // oggetto (minuscolo), null se è un controllo già pronto
@@ -248,6 +249,8 @@ namespace ModelProof
                 }
                 var r = new Rule { Name = where, Line = s.Line, Section = s };
                 r.Models = SplitList(s.Get("modelli"), ',');
+                r.Chapter = s.Get("sezione").Trim();
+                if (r.Chapter.Length == 0) r.Chapter = r.Name;
                 string control = s.Get("controllo").Trim().ToLowerInvariant();
                 string obj = s.Get("oggetto").Trim().ToLowerInvariant();
                 r.Control = control.Length > 0 ? control : null;

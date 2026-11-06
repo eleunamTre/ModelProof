@@ -57,6 +57,7 @@
     <Reference Include="WindowsBase" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
   <!-- API di Revit della versione scelta, da NuGet: non servono le versioni installate per compilare -->

@@ -9,8 +9,9 @@ using System.Windows.Forms;
 namespace ModelProof
 {
     /// <summary>
-    /// Risultati della verifica: in alto l'esito di ogni regola, in basso le anomalie delle regole selezionate.
-    /// Doppio clic su un'anomalia: seleziona e inquadra l'elemento in Revit. L'ultima verifica di ogni progetto resta
+    /// Risultati della verifica: in alto l'esito di ogni regola raggruppato per sezione, in basso le anomalie delle
+    /// regole selezionate raggruppate per regola. Selezionando anomalie, gli elementi vengono selezionati in Revit;
+    /// doppio clic li inquadra; «Isola nella vista» li isola temporaneamente. L'ultima verifica di ogni progetto resta
     /// in memoria finché Revit è aperto; chiudendo la finestra si nasconde soltanto.
     /// </summary>
     internal sealed class ResultsForm : MpForm
@@ -25,12 +26,14 @@ namespace ModelProof
         private readonly ListView _rules;
         private readonly ListView _issues;
         private readonly CheckBox _onlyErrors;
+        private readonly CheckBox _follow;
         private readonly Label _count;
-        private CheckRun _run;
-        private double _threshold = 20;
-        private bool _shown;
         private readonly SplitContainer _split;
+        private readonly Timer _selectTimer;
+        private CheckRun _run;
+        private bool _shown;
         private bool _splitSet;
+        private bool _filling;
 
         public static CheckRun LastRun(string documentKey)
         {
@@ -43,7 +46,6 @@ namespace ModelProof
             if (run == null) return;
             _runs[run.DocumentKey] = run;
             if (_instance == null || _instance.IsDisposed) _instance = new ResultsForm();
-            _instance._threshold = run.PartialThreshold;
             _instance.Fill(run);
             if (!_instance.Visible)
             {
@@ -58,8 +60,8 @@ namespace ModelProof
         {
             Text = L.T("ModelProof – Risultati della verifica");
             StartPosition = FormStartPosition.CenterScreen;
-            Size = new Size(1100, 760);
-            MinimumSize = new Size(760, 480);
+            Size = new Size(1150, 780);
+            MinimumSize = new Size(780, 500);
             ShowInTaskbar = false;
 
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, Padding = new Padding(10) };
@@ -71,20 +73,19 @@ namespace ModelProof
 
             _summary = new Label { AutoSize = true, Font = new Font("Segoe UI Semibold", 10f), Margin = new Padding(0, 0, 0, 4) };
             root.Controls.Add(_summary, 0, 0);
-            _notes = new Label { AutoSize = true, ForeColor = Color.FromArgb(160, 90, 0), MaximumSize = new Size(1060, 0), Margin = new Padding(0, 0, 0, 6) };
+            _notes = new Label { AutoSize = true, ForeColor = Color.FromArgb(160, 90, 0), MaximumSize = new Size(1100, 0), Margin = new Padding(0, 0, 0, 6) };
             root.Controls.Add(_notes, 0, 1);
 
             _split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
-            SplitContainer split = _split;
-            _rules = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = true };
+            _rules = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = true, ShowGroups = true };
             _rules.Columns.Add(L.T("Regola"), 280);
             _rules.Columns.Add(L.T("Esito"), 110);
             _rules.Columns.Add(L.T("Controllati"), 85, HorizontalAlignment.Right);
             _rules.Columns.Add(L.T("Errori"), 70, HorizontalAlignment.Right);
             _rules.Columns.Add(L.T("Avvisi"), 70, HorizontalAlignment.Right);
-            _rules.Columns.Add(L.T("Note"), 420);
-            _rules.SelectedIndexChanged += (s, e) => FillIssues();
-            split.Panel1.Controls.Add(_rules);
+            _rules.Columns.Add(L.T("Note"), 450);
+            _rules.SelectedIndexChanged += (s, e) => { if (!_filling) FillIssues(); };
+            _split.Panel1.Controls.Add(_rules);
 
             var bottom = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
             bottom.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -92,36 +93,62 @@ namespace ModelProof
             var bar = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Top, Margin = new Padding(0, 6, 0, 2) };
             _onlyErrors = new CheckBox { Text = L.T("Solo errori"), AutoSize = true, Margin = new Padding(0, 4, 16, 0) };
             _onlyErrors.CheckedChanged += (s, e) => FillIssues();
+            _follow = new CheckBox { Text = L.T("Seleziona nel modello"), AutoSize = true, Checked = true, Margin = new Padding(0, 4, 16, 0) };
             _count = new Label { AutoSize = true, Margin = new Padding(0, 6, 0, 0), ForeColor = UiTheme.Muted };
             bar.Controls.Add(_onlyErrors);
+            bar.Controls.Add(_follow);
             bar.Controls.Add(_count);
             bottom.Controls.Add(bar, 0, 0);
 
-            _issues = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = false };
+            _issues = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = true, ShowGroups = true };
             _issues.Columns.Add(L.T("Gravità"), 70);
             _issues.Columns.Add("ID", 80, HorizontalAlignment.Right);
             _issues.Columns.Add(L.T("Categoria"), 140);
-            _issues.Columns.Add(L.T("Famiglia / tipo"), 230);
+            _issues.Columns.Add(L.T("Famiglia / tipo"), 240);
             _issues.Columns.Add(L.T("Campo"), 120);
-            _issues.Columns.Add(L.T("Valore"), 150);
-            _issues.Columns.Add(L.T("Problema"), 360);
-            _issues.Columns.Add(L.T("Regola"), 180);
-            _issues.DoubleClick += (s, e) => ShowSelected();
-            _issues.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) ShowSelected(); };
+            _issues.Columns.Add(L.T("Valore"), 160);
+            _issues.Columns.Add(L.T("Problema"), 380);
+            _issues.DoubleClick += (s, e) => Send(SelectedIssues(), ShowMode.Zoom);
+            _issues.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter) Send(SelectedIssues(), ShowMode.Zoom);
+                else if (e.Control && e.KeyCode == Keys.A) { foreach (ListViewItem it in _issues.Items) it.Selected = true; }
+            };
+            // selezionando righe gli elementi si selezionano anche in Revit (con un attimo di ritardo, per non
+            // mandare una richiesta a ogni riga mentre si scorre con le frecce)
+            _selectTimer = new Timer { Interval = 300 };
+            _selectTimer.Tick += (s, e) =>
+            {
+                _selectTimer.Stop();
+                if (_follow.Checked && _issues.SelectedItems.Count > 0) Send(SelectedIssues(), ShowMode.Select);
+            };
+            _issues.SelectedIndexChanged += (s, e) => { if (_filling) return; _selectTimer.Stop(); _selectTimer.Start(); };
             bottom.Controls.Add(_issues, 0, 1);
-            split.Panel2.Controls.Add(bottom);
-            root.Controls.Add(split, 0, 2);
+            _split.Panel2.Controls.Add(bottom);
+            root.Controls.Add(_split, 0, 2);
 
             var buttons = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Top, FlowDirection = FlowDirection.RightToLeft, Margin = new Padding(0, 8, 0, 0) };
             var close = new Button { Text = L.T("Chiudi"), AutoSize = true };
             close.Click += (s, e) => Hide();
-            var export = new Button { Text = L.T("Esporta CSV..."), AutoSize = true };
-            export.Click += (s, e) => ExportCsv();
-            var show = new Button { Text = L.T("Mostra nel modello"), AutoSize = true };
-            show.Click += (s, e) => ShowSelected();
+            var excel = new Button { Text = L.T("Esporta Excel..."), AutoSize = true };
+            excel.Click += (s, e) => ExportExcel();
+            var csv = new Button { Text = L.T("CSV..."), AutoSize = true };
+            csv.Click += (s, e) => ExportCsv();
+            var reset = new Button { Text = L.T("Ripristina vista"), AutoSize = true };
+            reset.Click += (s, e) => { if (_run != null) ShowElementHandler.Request(_run.DocumentKey, new long[0], ShowMode.Reset); };
+            var isolate = new Button { Text = L.T("Isola nella vista"), AutoSize = true };
+            isolate.Click += (s, e) => Send(SelectedOrVisible(), ShowMode.Isolate);
+            var zoom = new Button { Text = L.T("Inquadra"), AutoSize = true };
+            zoom.Click += (s, e) => Send(SelectedOrVisible(), ShowMode.Zoom);
+            var select = new Button { Text = L.T("Seleziona tutte"), AutoSize = true };
+            select.Click += (s, e) => Send(VisibleIssues(), ShowMode.Select);
             buttons.Controls.Add(close);
-            buttons.Controls.Add(export);
-            buttons.Controls.Add(show);
+            buttons.Controls.Add(excel);
+            buttons.Controls.Add(csv);
+            buttons.Controls.Add(reset);
+            buttons.Controls.Add(isolate);
+            buttons.Controls.Add(zoom);
+            buttons.Controls.Add(select);
             root.Controls.Add(buttons, 0, 3);
             CancelButton = close;
 
@@ -134,7 +161,7 @@ namespace ModelProof
             // la divisione si imposta quando la finestra ha la sua altezza (prima darebbe errore)
             if (_splitSet) return;
             _splitSet = true;
-            try { _split.SplitterDistance = Math.Max(120, Math.Min(280, _split.Height / 3)); } catch { }
+            try { _split.SplitterDistance = Math.Max(140, Math.Min(300, _split.Height * 2 / 5)); } catch { }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -160,11 +187,22 @@ namespace ModelProof
             _notes.Text = string.Join("\n", run.Notes);
             _notes.Visible = run.Notes.Count > 0;
 
+            _filling = true;
             _rules.BeginUpdate();
             _rules.Items.Clear();
+            _rules.Groups.Clear();
+            var groups = new Dictionary<string, ListViewGroup>(StringComparer.OrdinalIgnoreCase);
             foreach (RuleResult r in run.Results)
             {
-                var it = new ListViewItem(r.Rule.Name) { Tag = r };
+                string chapter = r.Rule.Chapter ?? r.Rule.Name;
+                ListViewGroup g;
+                if (!groups.TryGetValue(chapter, out g))
+                {
+                    g = new ListViewGroup(chapter, chapter);
+                    groups[chapter] = g;
+                    _rules.Groups.Add(g);
+                }
+                var it = new ListViewItem(r.Rule.Name, g) { Tag = r };
                 it.SubItems.Add(Outcome(r));
                 it.SubItems.Add(r.Skipped ? "" : r.Checked.ToString());
                 it.SubItems.Add(r.Skipped ? "" : r.Errors.ToString());
@@ -175,85 +213,137 @@ namespace ModelProof
                 else if (r.Warnings > 0) it.ForeColor = Color.FromArgb(160, 90, 0);
                 _rules.Items.Add(it);
             }
+            // intestazioni delle sezioni con i totali
+            foreach (var kv in groups)
+            {
+                var results = run.Results.Where(r => string.Equals(r.Rule.Chapter ?? r.Rule.Name, kv.Key, StringComparison.OrdinalIgnoreCase)).ToList();
+                kv.Value.Header = L.F("{0}  –  {1} errori, {2} avvisi", kv.Key, results.Sum(r => r.Errors), results.Sum(r => r.Warnings));
+            }
             _rules.EndUpdate();
+            _filling = false;
             FillIssues();
         }
 
         /// <summary>Esito della regola come nella checklist: SI, PARZIALE (pochi oggetti con errori), NO.</summary>
         private string Outcome(RuleResult r)
         {
+            return OutcomeText(r, _run != null ? _run.PartialThreshold : 20);
+        }
+
+        public static string OutcomeText(RuleResult r, double threshold)
+        {
             if (r.Skipped) return L.T("non si applica");
             if (r.Note != null && r.Checked == 0 && r.Issues.Count == 0) return L.T("non eseguita");
             if (r.Errors == 0) return r.Warnings > 0 ? L.T("SI (avvisi)") : "SI";
             if (r.Checked == 0) return "NO";
             double share = 100.0 * r.FailedObjects / r.Checked;
-            return share < _threshold ? "PARZIALE" : "NO";
+            return share < threshold ? "PARZIALE" : "NO";
         }
 
-        private IEnumerable<Issue> VisibleIssues()
+        private List<Issue> VisibleIssues()
         {
-            if (_run == null) return Enumerable.Empty<Issue>();
+            if (_run == null) return new List<Issue>();
             var selected = _rules.SelectedItems.Cast<ListViewItem>().Select(i => (RuleResult)i.Tag).ToList();
             IEnumerable<RuleResult> source = selected.Count > 0 ? selected : _run.Results;
             IEnumerable<Issue> all = source.SelectMany(r => r.Issues);
             if (_onlyErrors.Checked) all = all.Where(i => i.Error);
-            return all;
+            return all.ToList();
+        }
+
+        private List<Issue> SelectedIssues()
+        {
+            return _issues.SelectedItems.Cast<ListViewItem>().Select(i => (Issue)i.Tag).ToList();
+        }
+
+        private List<Issue> SelectedOrVisible()
+        {
+            List<Issue> sel = SelectedIssues();
+            return sel.Count > 0 ? sel : VisibleIssues();
+        }
+
+        private void Send(List<Issue> issues, ShowMode mode)
+        {
+            if (_run == null || issues.Count == 0) return;
+            ShowElementHandler.Request(_run.DocumentKey, issues.Select(i => i.ShowId), mode);
         }
 
         private void FillIssues()
         {
-            List<Issue> list = VisibleIssues().ToList();
+            List<Issue> list = VisibleIssues();
+            _filling = true;
             _issues.BeginUpdate();
             _issues.Items.Clear();
+            _issues.Groups.Clear();
+            var groups = new Dictionary<string, ListViewGroup>(StringComparer.Ordinal);
             foreach (Issue i in list.Take(MaxRows))
             {
-                var it = new ListViewItem(i.Error ? L.T("errore") : L.T("avviso")) { Tag = i };
+                ListViewGroup g;
+                if (!groups.TryGetValue(i.Rule, out g))
+                {
+                    int n = list.Count(x => x.Rule == i.Rule);
+                    g = new ListViewGroup(i.Rule, L.F("{0}  –  {1} anomalie", i.Rule, n));
+                    groups[i.Rule] = g;
+                    _issues.Groups.Add(g);
+                }
+                var it = new ListViewItem(i.Error ? L.T("errore") : L.T("avviso"), g) { Tag = i };
                 it.SubItems.Add(i.ElementId >= 0 ? i.ElementId.ToString() : "");
                 it.SubItems.Add(i.Category);
                 it.SubItems.Add(i.FamilyType);
                 it.SubItems.Add(i.Field);
                 it.SubItems.Add(i.Value);
                 it.SubItems.Add(i.Message);
-                it.SubItems.Add(i.Rule);
                 it.ForeColor = i.Error ? Color.FromArgb(190, 40, 40) : Color.FromArgb(160, 90, 0);
                 _issues.Items.Add(it);
             }
             _issues.EndUpdate();
+            _filling = false;
             _count.Text = list.Count > MaxRows
-                ? L.F("{0} anomalie, mostrate le prime {1} (tutte nel CSV). Doppio clic: mostra l'elemento nel modello.", list.Count, MaxRows)
-                : L.F("{0} anomalie. Doppio clic: mostra l'elemento nel modello.", list.Count);
-        }
-
-        private void ShowSelected()
-        {
-            if (_run == null || _issues.SelectedItems.Count == 0) return;
-            var i = (Issue)_issues.SelectedItems[0].Tag;
-            if (i.ShowId < 0) return;
-            ShowElementHandler.Request(_run.DocumentKey, i.ShowId);
+                ? L.F("{0} anomalie, mostrate le prime {1} (tutte nell'Excel). Doppio clic: inquadra.", list.Count, MaxRows)
+                : L.F("{0} anomalie. Doppio clic: inquadra; Ctrl+A: tutte.", list.Count);
         }
 
         // ------------------------------------------------------------------ esportazione
 
+        private string DefaultName(string ext)
+        {
+            return _run.Model.FileName + "_ModelProof_" + _run.When.ToString("yyyyMMdd_HHmm") + ext;
+        }
+
+        /// <summary>Excel con un foglio di sintesi e un foglio per ogni sezione con anomalie.</summary>
+        private void ExportExcel()
+        {
+            if (_run == null) return;
+            using (var dlg = new SaveFileDialog { Title = L.T("Esporta i risultati"), Filter = "Excel (*.xlsx)|*.xlsx", FileName = DefaultName(".xlsx") })
+            {
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+                try
+                {
+                    ReportWriter.WriteExcel(_run, dlg.FileName);
+                    Log.Write("Verifica", "esportato " + Path.GetFileName(dlg.FileName));
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Esporta Excel", ex);
+                    MessageBox.Show(this, ex.Message, "ModelProof", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+        }
+
         private void ExportCsv()
         {
             if (_run == null) return;
-            using (var dlg = new SaveFileDialog
-            {
-                Title = L.T("Esporta le anomalie"),
-                Filter = "CSV (*.csv)|*.csv",
-                FileName = _run.Model.FileName + "_ModelProof_" + _run.When.ToString("yyyyMMdd_HHmm") + ".csv"
-            })
+            using (var dlg = new SaveFileDialog { Title = L.T("Esporta le anomalie"), Filter = "CSV (*.csv)|*.csv", FileName = DefaultName(".csv") })
             {
                 if (dlg.ShowDialog(this) != DialogResult.OK) return;
                 try
                 {
                     var sb = new StringBuilder();
-                    sb.AppendLine(string.Join(";", new[] { L.T("Regola"), L.T("Gravità"), L.T("Tipo"), "ID", L.T("Categoria"), L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema") }.Select(Csv)));
+                    sb.AppendLine(string.Join(";", new[] { L.T("Sezione"), L.T("Regola"), L.T("Gravità"), L.T("Tipo"), "ID", L.T("Categoria"), L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema") }.Select(Csv)));
                     foreach (RuleResult r in _run.Results)
                         foreach (Issue i in r.Issues)
                             sb.AppendLine(string.Join(";", new[]
                             {
-                                i.Rule, i.Error ? L.T("errore") : L.T("avviso"), i.Kind.ToString(), i.ElementId >= 0 ? i.ElementId.ToString() : "",
+                                r.Rule.Chapter, i.Rule, i.Error ? L.T("errore") : L.T("avviso"), i.Kind.ToString(), i.ElementId >= 0 ? i.ElementId.ToString() : "",
                                 i.Category, i.FamilyType, i.Field, i.Value, i.Message
                             }.Select(Csv)));
                     File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));

@@ -63,3 +63,14 @@ ModelProof – registro delle modifiche
    - i codici ripetuti si segnalano solo negli elenchi usati dai segnaposto;
    - i risultati elencano i collegamenti trovati, con il ruolo riconosciuto o «non caricato», così si capisce
      perché un confronto con il riferimento non parte.
+
+9. Report diviso per sezione e anomalie evidenziate nel modello:
+   - nuova chiave delle regole «sezione»: nella finestra dei risultati le regole sono raggruppate per sezione (con i
+     totali di errori e avvisi) e le anomalie per regola;
+   - «Esporta Excel»: file .xlsx scritto senza librerie (Output/XlsxWriter.cs) con un foglio «Sintesi» (modello,
+     data, note, esito di ogni regola) e un foglio per ogni sezione con anomalie (intestazione fissa, filtro, righe
+     rosse per gli errori e arancio per gli avvisi). Resta anche il CSV, con la colonna della sezione;
+   - selezionando una o più anomalie (anche Ctrl+A) gli elementi vengono selezionati in Revit («Seleziona nel
+     modello», attivo di base); doppio clic o «Inquadra» li inquadra; «Isola nella vista» li isola temporaneamente
+     nella vista attiva (occhiali, non si salva) e «Ripristina vista» toglie l'isolamento; «Seleziona tutte» prende
+     tutte le anomalie visibili. Senza righe selezionate, Inquadra e Isola usano tutte le anomalie visibili.
