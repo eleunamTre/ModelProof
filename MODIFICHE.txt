@@ -94,3 +94,9 @@ ModelProof – registro delle modifiche
    - le note sui collegamenti mostrano anche il ruolo letto dalla descrizione quando è diverso;
    - se nessun collegamento ha il codice del modello di riferimento, si usa quello che la descrizione indica come
      riferimento, così coordinate e livelli si confrontano lo stesso (il nome sbagliato resta segnalato).
+
+12. Modello e file di ogni anomalia:
+   - ogni anomalia sa in quale file sta il problema (il modello verificato oppure, per i controlli sui nomi e sul
+     codice edificio, il collegamento) e il suo ruolo;
+   - nuova colonna «Modello» nella finestra (il nome completo del file nel suggerimento al passaggio del mouse) e
+     colonne «Modello» e «File» nel CSV e nei fogli dell'Excel.

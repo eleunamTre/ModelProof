@@ -19,6 +19,8 @@ namespace ModelProof
     internal sealed class Issue
     {
         public string Rule;
+        public string File = "";       // file in cui sta il problema (il modello verificato o un collegamento)
+        public string Role = "";       // ruolo di quel file (URS, ARC, IMP o «?»)
         public bool Error;             // false = avviso
         public IssueKind Kind;
         public long ElementId = -1;    // oggetto controllato (-1 = nessuno)

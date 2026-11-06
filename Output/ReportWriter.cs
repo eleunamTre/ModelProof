@@ -52,13 +52,13 @@ namespace ModelProof
                 if (r.Issues.Count > 0 && !chapters.Contains(r.Rule.Chapter)) chapters.Add(r.Rule.Chapter);
             foreach (string chapter in chapters)
             {
-                int sh = x.AddSheet(chapter, new double[] { 28, 9, 12, 11, 22, 40, 22, 26, 70 }, true);
-                x.AddRow(sh, XlsxWriter.RowStyle.Header, L.T("Regola"), L.T("Gravità"), L.T("Tipo"), "ID", L.T("Categoria"),
+                int sh = x.AddSheet(chapter, new double[] { 28, 9, 12, 8, 34, 11, 22, 40, 22, 26, 70 }, true);
+                x.AddRow(sh, XlsxWriter.RowStyle.Header, L.T("Regola"), L.T("Gravità"), L.T("Tipo"), L.T("Modello"), L.T("File"), "ID", L.T("Categoria"),
                     L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema"));
                 foreach (RuleResult r in run.Results.Where(r => r.Rule.Chapter == chapter))
                     foreach (Issue i in r.Issues.OrderBy(i => i.Priority))
                         x.AddRow(sh, i.Priority == 0 ? XlsxWriter.RowStyle.Error : i.Priority == 1 ? XlsxWriter.RowStyle.Unlisted : XlsxWriter.RowStyle.Warning,
-                            i.Rule, i.LevelText, KindText(i.Kind), i.ElementId >= 0 ? (object)i.ElementId : null,
+                            i.Rule, i.LevelText, KindText(i.Kind), i.Role, i.File, i.ElementId >= 0 ? (object)i.ElementId : null,
                             i.Category, i.FamilyType, i.Field, i.Value, i.Message);
             }
             x.Save(path);

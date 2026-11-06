@@ -133,6 +133,8 @@ namespace ModelProof
                     Log.Error("Verifica " + rule.Name, ex);
                     rr.Note = L.F("interrotta da un errore: {0}", ex.Message);
                 }
+                foreach (Issue i in rr.Issues)
+                    if (i.File.Length == 0) { i.File = _info.FileName; i.Role = _info.RoleText; }
                 Log.Write("Verifica", string.Format("{0}: {1} controllati, {2} errori, {3} avvisi, {4} ms{5}",
                     rule.Name, rr.Checked, rr.Errors, rr.Warnings, sw.ElapsedMilliseconds, rr.Note != null ? " (" + rr.Note + ")" : ""));
             }
@@ -621,6 +623,7 @@ namespace ModelProof
             foreach (ModelInfo m in all)
             {
                 rr.Checked++;
+                int before = rr.Issues.Count;
                 string who = m == _info ? L.T("questo modello") : L.T("collegamento");
                 if (m.Role == null)
                 {
@@ -635,6 +638,7 @@ namespace ModelProof
                         L.F("descrizione «{0}» diversa da quella attesa per {1}", m.Description, m.Role)));
                 else if (!m.DescriptionOk)
                     rr.Issues.Add(ControlIssue(rule, false, who, m.FileName, L.T("nella descrizione c'è «_» al posto dello spazio")));
+                for (int k = before; k < rr.Issues.Count; k++) { rr.Issues[k].File = m.FileName; rr.Issues[k].Role = m.RoleText; }
             }
             foreach (var g in all.Where(m => m.Role != null).GroupBy(m => m.Role).Where(g => g.Count() > 1))
                 rr.Issues.Add(ControlIssue(rule, error, L.T("nome file"), string.Join("; ", g.Select(m => m.FileName)),
@@ -654,8 +658,13 @@ namespace ModelProof
             {
                 rr.Checked++;
                 if (!string.Equals(l.Info.Building, _info.Building, StringComparison.Ordinal))
-                    rr.Issues.Add(ControlIssue(rule, error, L.T("nome file"), l.Info.FileName,
-                        L.F("il collegamento {0} ha codice edificio «{1}», questo modello «{2}»", l.Info.Role, l.Info.Building, _info.Building)));
+                {
+                    Issue i = ControlIssue(rule, error, L.T("nome file"), l.Info.FileName,
+                        L.F("il collegamento {0} ha codice edificio «{1}», questo modello «{2}»", l.Info.Role, l.Info.Building, _info.Building));
+                    i.File = l.Info.FileName;
+                    i.Role = l.Info.RoleText;
+                    rr.Issues.Add(i);
+                }
             }
         }
 

@@ -100,8 +100,9 @@ namespace ModelProof
             bar.Controls.Add(_count);
             bottom.Controls.Add(bar, 0, 0);
 
-            _issues = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = true, ShowGroups = true };
+            _issues = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = true, ShowGroups = true, ShowItemToolTips = true };
             _issues.Columns.Add(L.T("Gravità"), 70);
+            _issues.Columns.Add(L.T("Modello"), 60);
             _issues.Columns.Add("ID", 80, HorizontalAlignment.Right);
             _issues.Columns.Add(L.T("Categoria"), 140);
             _issues.Columns.Add(L.T("Famiglia / tipo"), 240);
@@ -285,7 +286,8 @@ namespace ModelProof
                     groups[i.Rule] = g;
                     _issues.Groups.Add(g);
                 }
-                var it = new ListViewItem(i.LevelText, g) { Tag = i };
+                var it = new ListViewItem(i.LevelText, g) { Tag = i, ToolTipText = i.File };
+                it.SubItems.Add(i.Role);
                 it.SubItems.Add(i.ElementId >= 0 ? i.ElementId.ToString() : "");
                 it.SubItems.Add(i.Category);
                 it.SubItems.Add(i.FamilyType);
@@ -338,12 +340,12 @@ namespace ModelProof
                 try
                 {
                     var sb = new StringBuilder();
-                    sb.AppendLine(string.Join(";", new[] { L.T("Sezione"), L.T("Regola"), L.T("Gravità"), L.T("Tipo"), "ID", L.T("Categoria"), L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema") }.Select(Csv)));
+                    sb.AppendLine(string.Join(";", new[] { L.T("Sezione"), L.T("Regola"), L.T("Gravità"), L.T("Tipo"), L.T("Modello"), L.T("File"), "ID", L.T("Categoria"), L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema") }.Select(Csv)));
                     foreach (RuleResult r in _run.Results)
                         foreach (Issue i in r.Issues)
                             sb.AppendLine(string.Join(";", new[]
                             {
-                                r.Rule.Chapter, i.Rule, i.LevelText, i.Kind.ToString(), i.ElementId >= 0 ? i.ElementId.ToString() : "",
+                                r.Rule.Chapter, i.Rule, i.LevelText, i.Kind.ToString(), i.Role, i.File, i.ElementId >= 0 ? i.ElementId.ToString() : "",
                                 i.Category, i.FamilyType, i.Field, i.Value, i.Message
                             }.Select(Csv)));
                     File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));
