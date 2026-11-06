@@ -18,6 +18,8 @@ sintesi e foto delle anomalie, verifica di più modelli insieme (ARC, MEP, URS).
 - Controllo «nome file»: codice del modello coerente con la descrizione, un solo modello per ruolo; riferimento
   riconosciuto anche dalla descrizione quando il codice è sbagliato (MODIFICHE 11).
 - Modello e file di ogni anomalia nella finestra, nel CSV e nell'Excel (MODIFICHE 12).
+- Dettaglio delle coordinate di tutti i file (valori, nord reale, coordinate condivise, posizionamento dei
+  collegamenti) nella finestra e nell'Excel (MODIFICHE 13).
 
 ## Prossimi passi
 1. Controlli già pronti mancanti: parametri condivisi, codice categoria e funzione ammessa (elenchi), categoria

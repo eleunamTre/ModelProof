@@ -48,6 +48,7 @@ namespace ModelProof
         private readonly Dictionary<long, long> _typeFirstInstance = new Dictionary<long, long>();
         private List<Level> _levels;
         private List<LinkedModel> _links;
+        private List<CoordinateRow> _coords;
         private readonly List<string> _linkNotes = new List<string>();
         private readonly Dictionary<string, Match> _parseCache = new Dictionary<string, Match>(StringComparer.Ordinal);
 
@@ -109,6 +110,7 @@ namespace ModelProof
             var sw = Stopwatch.StartNew();
             Collect();
             run.Notes.AddRange(_linkNotes);
+            BuildCoordinates(run);
             Log.Write("Verifica", string.Format("{0} ({1}, edificio {2}): {3} istanze, {4} tipi usati, {5} livelli, {6} collegamenti riconosciuti, raccolta {7} ms",
                 _info.FileName, _info.RoleText, _info.Building ?? "?", _instances.Count, _types.Count, _levels.Count, _links.Count, sw.ElapsedMilliseconds));
 
@@ -689,54 +691,105 @@ namespace ModelProof
             return deg < 0 ? deg + 360.0 : deg;
         }
 
-        private static string Coord(XYZ p)
+
+        private static double[] Meters(XYZ p)
         {
-            return string.Format(CultureInfo.InvariantCulture, "E/W {0:F3}  N/S {1:F3}  Q {2:F3} m", p.X * 0.3048, p.Y * 0.3048, p.Z * 0.3048);
+            return p == null ? null : new[] { p.X * 0.3048, p.Y * 0.3048, p.Z * 0.3048 };
+        }
+
+        private static double DistMm(double[] a, double[] b)
+        {
+            double dx = a[0] - b[0], dy = a[1] - b[1], dz = a[2] - b[2];
+            return Math.Sqrt(dx * dx + dy * dy + dz * dz) * 1000.0;
+        }
+
+        public static string Coord(double[] p)
+        {
+            return p == null ? "" : string.Format(CultureInfo.InvariantCulture, "E/W {0:F3}  N/S {1:F3}  Q {2:F3} m", p[0], p[1], p[2]);
+        }
+
+        private static CoordinateRow CoordinatesOf(Document doc, ModelInfo info, bool host)
+        {
+            var row = new CoordinateRow { File = info.FileName, Role = info.RoleText, Host = host };
+            row.Survey = Meters(BasePointCoordinates(doc, true));
+            row.BasePoint = Meters(BasePointCoordinates(doc, false));
+            try { row.North = TrueNorthDegrees(doc); } catch { }
+            // senza coordinate condivise la posizione attiva coincide con il sistema interno (nessuno spostamento né rotazione)
+            try
+            {
+                Transform t = doc.ActiveProjectLocation.GetTotalTransform();
+                row.SharedDefined = t.Origin.GetLength() * FeetToMm > 0.5 || t.BasisX.AngleTo(XYZ.BasisX) > 1e-9;
+            }
+            catch { }
+            return row;
+        }
+
+        /// <summary>
+        /// Dettaglio delle coordinate: il file verificato e ogni collegamento caricato, con le differenze rispetto al
+        /// file verificato (tolleranze della regola «coordinate», se c'è).
+        /// </summary>
+        private void BuildCoordinates(CheckRun run)
+        {
+            Rule cr = _cfg.Rules.FirstOrDefault(r => r.Control == "coordinate");
+            double tolMm = cr != null ? cr.ToleranceMm : 1, tolDeg = cr != null ? cr.ToleranceDeg : 0.001;
+            _coords = run.Coordinates;
+            CoordinateRow me;
+            try { me = CoordinatesOf(_doc, _info, true); }
+            catch (Exception ex) { Log.Error("Coordinate", ex); return; }
+            if (!me.SharedDefined) me.Problems.Add(L.T("nessun sistema di coordinate condivise: coincide con quello interno"));
+            _coords.Add(me);
+            Transform tHost = _doc.ActiveProjectLocation.GetTotalTransform();
+            foreach (LinkedModel l in _links)
+            {
+                CoordinateRow row;
+                try { row = CoordinatesOf(l.Doc, l.Info, false); }
+                catch (Exception ex) { Log.Error("Coordinate " + l.Info.FileName, ex); continue; }
+                if (!row.SharedDefined) row.Problems.Add(L.T("nessun sistema di coordinate condivise: coincide con quello interno"));
+                try
+                {
+                    // in coordinate condivise se la posizione del collegamento è T(questo) · T(collegato)^-1
+                    Transform expected = tHost.Multiply(l.Doc.ActiveProjectLocation.GetTotalTransform().Inverse);
+                    Transform actual = l.Instance.GetTotalTransform();
+                    row.LinkOffsetMm = actual.Origin.DistanceTo(expected.Origin) * FeetToMm;
+                    row.LinkRotDeg = actual.BasisX.AngleTo(expected.BasisX) * 180.0 / Math.PI;
+                    row.LinkShared = row.LinkOffsetMm <= tolMm && row.LinkRotDeg <= tolDeg;
+                    if (row.LinkShared == false)
+                        row.Problems.Add(L.F("non collegato in coordinate condivise: spostato di {0:F1} mm, ruotato di {1}°",
+                            row.LinkOffsetMm, row.LinkRotDeg.ToString("F4", CultureInfo.InvariantCulture)));
+                }
+                catch { }
+                if (row.Survey != null && me.Survey != null && DistMm(row.Survey, me.Survey) > tolMm)
+                    row.Problems.Add(L.F("Survey Point diverso: scarto {0:F1} mm", DistMm(row.Survey, me.Survey)));
+                if (row.BasePoint != null && me.BasePoint != null && DistMm(row.BasePoint, me.BasePoint) > tolMm)
+                    row.Problems.Add(L.F("Project Base Point diverso: scarto {0:F1} mm", DistMm(row.BasePoint, me.BasePoint)));
+                if (!double.IsNaN(row.North) && !double.IsNaN(me.North))
+                {
+                    double da = Math.Abs((row.North - me.North + 540.0) % 360.0 - 180.0);
+                    if (da > tolDeg) row.Problems.Add(L.F("nord reale diverso: scarto {0}°", da.ToString("F4", CultureInfo.InvariantCulture)));
+                }
+                _coords.Add(row);
+            }
         }
 
         private void CheckCoordinates(Rule rule, RuleResult rr)
         {
             bool error = rule.Severity == "errore";
-            LinkedModel reference = Reference(rule);
-            if (reference == null)
-            {
-                rr.Issues.Add(ControlIssue(rule, error, "", "", L.F("modello {0} non collegato o non caricato: coordinate non confrontabili", RefName(rule))));
-                return;
-            }
-            double tol = rule.ToleranceMm;
-
-            foreach (bool survey in new[] { true, false })
+            if (_info.Role != null && _info.Role != RefName(rule) && Reference(rule) == null)
+                rr.Issues.Add(ControlIssue(rule, error, "", "", L.F("modello {0} non collegato o non caricato: manca il confronto con il riferimento", RefName(rule))));
+            if (_coords == null) return;
+            foreach (CoordinateRow row in _coords)
             {
                 rr.Checked++;
-                string name = survey ? "Survey Point" : "Project Base Point";
-                XYZ mine = BasePointCoordinates(_doc, survey);
-                XYZ theirs = BasePointCoordinates(reference.Doc, survey);
-                if (mine == null || theirs == null) { rr.Issues.Add(ControlIssue(rule, error, name, "", L.T("punto non trovato"))); continue; }
-                double d = mine.DistanceTo(theirs) * FeetToMm;
-                if (d > tol)
-                    rr.Issues.Add(ControlIssue(rule, error, name, Coord(mine),
-                        L.F("diverso da {0} ({1}): scarto {2:F1} mm", RefName(rule), Coord(theirs), d)));
+                LinkedModel link = row.Host ? null : _links.FirstOrDefault(l => l.Info.FileName == row.File);
+                foreach (string p in row.Problems)
+                {
+                    Issue i = ControlIssue(rule, error, row.Host ? L.T("questo modello") : L.T("collegamento"), Coord(row.Survey), p,
+                        link != null && row.LinkShared == false ? link.Instance : null);
+                    i.File = row.File;
+                    i.Role = row.Role;
+                    rr.Issues.Add(i);
+                }
             }
-
-            rr.Checked++;
-            double a1 = TrueNorthDegrees(_doc), a2 = TrueNorthDegrees(reference.Doc);
-            double da = Math.Abs((a1 - a2 + 540.0) % 360.0 - 180.0);
-            if (da > rule.ToleranceDeg)
-                rr.Issues.Add(ControlIssue(rule, error, L.T("Nord reale"), a1.ToString("F4", CultureInfo.InvariantCulture) + "°",
-                    L.F("{0} ha {1}°: scarto {2}°", RefName(rule), a2.ToString("F4", CultureInfo.InvariantCulture), da.ToString("F4", CultureInfo.InvariantCulture))));
-
-            // posizione del collegamento: in coordinate condivise se L = T(questo) · T(collegato)^-1
-            rr.Checked++;
-            Transform tHost = _doc.ActiveProjectLocation.GetTotalTransform();
-            Transform tLink = reference.Doc.ActiveProjectLocation.GetTotalTransform();
-            Transform expected = tHost.Multiply(tLink.Inverse);
-            Transform actual = reference.Instance.GetTotalTransform();
-            double dist = actual.Origin.DistanceTo(expected.Origin) * FeetToMm;
-            double rot = actual.BasisX.AngleTo(expected.BasisX) * 180.0 / Math.PI;
-            if (dist > tol || rot > rule.ToleranceDeg)
-                rr.Issues.Add(ControlIssue(rule, error, L.T("Collegamento"), reference.Info.FileName,
-                    L.F("collegamento {0} non posizionato in coordinate condivise: spostato di {1:F1} mm, ruotato di {2}°", RefName(rule), dist, rot.ToString("F4", CultureInfo.InvariantCulture)),
-                    reference.Instance));
         }
 
         /// <summary>Quota dei livelli in coordinate condivise (m), per nome.</summary>

@@ -141,11 +141,14 @@ namespace ModelProof
             isolate.Click += (s, e) => Send(SelectedOrVisible(), ShowMode.Isolate);
             var zoom = new Button { Text = L.T("Inquadra"), AutoSize = true };
             zoom.Click += (s, e) => Send(SelectedOrVisible(), ShowMode.Zoom);
+            var coords = new Button { Text = L.T("Coordinate..."), AutoSize = true };
+            coords.Click += (s, e) => { if (_run != null) using (var f = new CoordinatesForm(_run)) f.ShowDialog(this); };
             var select = new Button { Text = L.T("Seleziona tutte"), AutoSize = true };
             select.Click += (s, e) => Send(VisibleIssues(), ShowMode.Select);
             buttons.Controls.Add(close);
             buttons.Controls.Add(excel);
             buttons.Controls.Add(csv);
+            buttons.Controls.Add(coords);
             buttons.Controls.Add(reset);
             buttons.Controls.Add(isolate);
             buttons.Controls.Add(zoom);

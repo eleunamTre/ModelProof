@@ -65,6 +65,22 @@ namespace ModelProof
         public string RoleText { get { return Role ?? "?"; } }
     }
 
+    /// <summary>Coordinate di un file (quello verificato o un collegamento) per il dettaglio delle coordinate.</summary>
+    internal sealed class CoordinateRow
+    {
+        public string File = "";
+        public string Role = "?";
+        public bool Host;              // il file verificato
+        public double[] Survey;        // Survey Point E/W, N/S, quota in coordinate condivise (m); null = non trovato
+        public double[] BasePoint;     // Project Base Point, idem
+        public double North = double.NaN;   // angolo tra nord di progetto e nord reale (gradi)
+        public bool SharedDefined;     // il file ha un sistema di coordinate condivise diverso da quello interno
+        public bool? LinkShared;       // solo collegamenti: posizionato in coordinate condivise
+        public double LinkOffsetMm;    // scarto della posizione del collegamento rispetto a quella condivisa
+        public double LinkRotDeg;
+        public readonly List<string> Problems = new List<string>();   // differenze rispetto al file verificato
+    }
+
     /// <summary>Risultato di una verifica completa di un modello.</summary>
     internal sealed class CheckRun
     {
@@ -76,6 +92,7 @@ namespace ModelProof
         public double PartialThreshold = 20;   // % di oggetti con errori sotto cui l'esito è PARZIALE
         public readonly List<RuleResult> Results = new List<RuleResult>();
         public readonly List<string> Notes = new List<string>();
+        public readonly List<CoordinateRow> Coordinates = new List<CoordinateRow>();
 
         public int Errors { get { return Results.Sum(r => r.Errors); } }
         public int Warnings { get { return Results.Sum(r => r.Warnings); } }

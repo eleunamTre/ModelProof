@@ -20,6 +20,11 @@ namespace ModelProof
             }
         }
 
+        private static object Val(double[] p, int k)
+        {
+            return p == null ? null : (object)Math.Round(p[k], 3);
+        }
+
         public static void WriteExcel(CheckRun run, string path)
         {
             var x = new XlsxWriter();
@@ -44,6 +49,24 @@ namespace ModelProof
                 XlsxWriter.RowStyle st = r.Errors > 0 ? XlsxWriter.RowStyle.Error : r.Warnings > 0 ? XlsxWriter.RowStyle.Warning : XlsxWriter.RowStyle.Normal;
                 x.AddRow(s, st, r.Rule.Chapter, r.Rule.Name, ResultsForm.OutcomeText(r, run.PartialThreshold),
                     r.Skipped ? null : (object)r.Checked, r.Skipped ? null : (object)r.Errors, r.Skipped ? null : (object)r.Warnings, r.Note ?? "");
+            }
+
+            // ---- dettaglio delle coordinate: il file verificato e i collegamenti
+            if (run.Coordinates.Count > 0)
+            {
+                int c = x.AddSheet(L.T("Coordinate"), new double[] { 8, 40, 14, 13, 13, 10, 13, 13, 10, 12, 14, 14, 11, 11, 70 }, true);
+                x.AddRow(c, XlsxWriter.RowStyle.Header, L.T("Modello"), L.T("File"), L.T("Ruolo nella verifica"),
+                    "SP E/W (m)", "SP N/S (m)", "SP Q (m)", "PBP E/W (m)", "PBP N/S (m)", "PBP Q (m)", L.T("Nord reale (°)"),
+                    L.T("Coordinate condivise nel file"), L.T("Collegato in coordinate condivise"), L.T("Scarto (mm)"), L.T("Rotazione (°)"), L.T("Problemi"));
+                foreach (CoordinateRow r in run.Coordinates)
+                    x.AddRow(c, r.Problems.Count > 0 ? XlsxWriter.RowStyle.Error : XlsxWriter.RowStyle.Normal,
+                        r.Role, r.File, r.Host ? L.T("file verificato") : L.T("collegamento"),
+                        Val(r.Survey, 0), Val(r.Survey, 1), Val(r.Survey, 2), Val(r.BasePoint, 0), Val(r.BasePoint, 1), Val(r.BasePoint, 2),
+                        double.IsNaN(r.North) ? null : (object)Math.Round(r.North, 4),
+                        r.SharedDefined ? L.T("sì") : L.T("no"),
+                        r.LinkShared == null ? "" : r.LinkShared.Value ? L.T("sì") : L.T("no"),
+                        r.Host ? null : (object)Math.Round(r.LinkOffsetMm, 1), r.Host ? null : (object)Math.Round(r.LinkRotDeg, 4),
+                        r.Problems.Count > 0 ? string.Join("; ", r.Problems) : L.T("Conforme"));
             }
 
             // ---- un foglio per sezione, nell'ordine delle regole

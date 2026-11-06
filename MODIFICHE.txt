@@ -100,3 +100,14 @@ ModelProof – registro delle modifiche
      codice edificio, il collegamento) e il suo ruolo;
    - nuova colonna «Modello» nella finestra (il nome completo del file nel suggerimento al passaggio del mouse) e
      colonne «Modello» e «File» nel CSV e nei fogli dell'Excel.
+
+13. Dettaglio delle coordinate:
+   - a ogni verifica si leggono, per il file verificato e per ogni collegamento caricato: Survey Point e Project
+     Base Point in coordinate condivise, angolo del nord reale, presenza di un sistema di coordinate condivise
+     (diverso da quello interno) e, per i collegamenti, se sono posizionati in coordinate condivise (scarto e
+     rotazione rispetto alla posizione condivisa);
+   - il controllo «coordinate» ora vale anche per il modello di riferimento e segnala come errore: file senza
+     coordinate condivise, collegamenti non posizionati in coordinate condivise, Survey Point, Project Base Point o
+     nord reale diversi da quelli del file verificato (tolleranze della regola). Ogni anomalia indica il file;
+   - nuovo pulsante «Coordinate...» nella finestra dei risultati con la tabella dei valori, e nuovo foglio
+     «Coordinate» nell'Excel.
