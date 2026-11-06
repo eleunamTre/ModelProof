@@ -48,6 +48,7 @@ namespace ModelProof
         private readonly Dictionary<long, long> _typeFirstInstance = new Dictionary<long, long>();
         private List<Level> _levels;
         private List<LinkedModel> _links;
+        private readonly List<string> _linkNotes = new List<string>();
         private readonly Dictionary<string, Match> _parseCache = new Dictionary<string, Match>(StringComparer.Ordinal);
 
         public Checker(Document doc, ProjectConfig cfg)
@@ -99,6 +100,7 @@ namespace ModelProof
 
             var sw = Stopwatch.StartNew();
             Collect();
+            run.Notes.AddRange(_linkNotes);
             Log.Write("Verifica", string.Format("{0} ({1}, edificio {2}): {3} istanze, {4} tipi usati, {5} livelli, {6} collegamenti riconosciuti, raccolta {7} ms",
                 _info.FileName, _info.RoleText, _info.Building ?? "?", _instances.Count, _types.Count, _levels.Count, _links.Count, sw.ElapsedMilliseconds));
 
@@ -172,18 +174,29 @@ namespace ModelProof
 
             _links = new List<LinkedModel>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var described = new List<string>();
             foreach (RevitLinkInstance li in new FilteredElementCollector(_doc).OfClass(typeof(RevitLinkInstance)).Cast<RevitLinkInstance>())
             {
                 try
                 {
                     Document ld = li.GetLinkDocument();
-                    if (ld == null) continue;   // collegamento non caricato
+                    if (ld == null)
+                    {
+                        // collegamento non caricato: lo si dice, perché i controlli che ne hanno bisogno non partono
+                        var lt = _doc.GetElement(li.GetTypeId()) as RevitLinkType;
+                        string ln = lt != null ? lt.Name : li.Name;
+                        if (seen.Add(ln)) described.Add(L.F("{0} (non caricato)", ln));
+                        continue;
+                    }
                     string name = RevitUtil.FileName(ld);
                     if (!seen.Add(name)) continue;
-                    _links.Add(new LinkedModel { Instance = li, Doc = ld, Info = Identify(name, _cfg) });
+                    var lm = new LinkedModel { Instance = li, Doc = ld, Info = Identify(name, _cfg) };
+                    _links.Add(lm);
+                    described.Add(lm.Info.Role != null ? name + " (" + lm.Info.Role + ")" : L.F("{0} (ruolo non riconosciuto)", name));
                 }
                 catch { }
             }
+            _linkNotes.Add(described.Count > 0 ? L.F("Collegamenti: {0}.", string.Join("; ", described)) : L.T("Nessun modello Revit collegato."));
         }
 
         private LinkedModel Reference(Rule rule)
@@ -210,7 +223,8 @@ namespace ModelProof
                     string value = ReadField(rule.Object, t, field, out exists);
                     if (!exists)
                     {
-                        rr.Issues.Add(MakeIssue(rule, t, error, IssueKind.Mancante, field, "", L.F("parametro «{0}» assente", field)));
+                        if (rule.Absent != "ignora")
+                            rr.Issues.Add(MakeIssue(rule, t, error && rule.Absent == "errore", IssueKind.Mancante, field, "", L.F("parametro «{0}» assente", field)));
                         continue;
                     }
                     if (IsEmpty(value, rule))
@@ -346,7 +360,7 @@ namespace ModelProof
                     foreach (var kv in _types)
                     {
                         ElementType type = kv.Value;
-                        bool loadable = type is FamilySymbol;
+                        bool loadable = RevitUtil.IsLoadable(type);
                         if (obj == "tipi di sistema" && loadable) continue;
                         if (obj == "tipi caricabili" && !loadable) continue;
                         list.Add(new Target { El = type, Type = type, Id = kv.Key, ShowId = _typeFirstInstance[kv.Key], Category = CatName(type), FamilyType = FamType(type) });
@@ -359,7 +373,7 @@ namespace ModelProof
                         foreach (var kv in _types)
                         {
                             var fs = kv.Value as FamilySymbol;
-                            if (fs == null || fs.Family == null || !done.Add(fs.Family.Id.Value)) continue;
+                            if (fs == null || !RevitUtil.IsLoadable(fs) || fs.Family == null || !done.Add(fs.Family.Id.Value)) continue;
                             list.Add(new Target { El = fs.Family, Type = fs, Id = fs.Family.Id.Value, ShowId = _typeFirstInstance[kv.Key], Category = CatName(fs), FamilyType = fs.Family.Name });
                         }
                     }
@@ -488,17 +502,17 @@ namespace ModelProof
 
                 case "nome":
                     if (rule.Object == "materiali") AddGroup(values, _cfg.FindParser("materiali", "Nome"), t.El.Name, c.SourceGroup);
-                    else if (t.Type is FamilySymbol) AddGroup(values, _cfg.FindParser("famiglie caricabili", "Nome famiglia"), ((FamilySymbol)t.Type).Family.Name, c.SourceGroup);
+                    else if (RevitUtil.IsLoadable(t.Type)) AddGroup(values, _cfg.FindParser("famiglie caricabili", "Nome famiglia"), FamilyNameOf(t.Type), c.SourceGroup);
                     else if (t.Type != null) AddGroup(values, _cfg.FindParser("tipi di sistema", "Nome tipo"), t.Type.Name, c.SourceGroup);
                     break;
 
                 case "nome tipo":
-                    if (t.Type is FamilySymbol) AddGroup(values, _cfg.FindParser("tipi caricabili", "Nome tipo"), t.Type.Name, c.SourceGroup);
+                    if (RevitUtil.IsLoadable(t.Type)) AddGroup(values, _cfg.FindParser("tipi caricabili", "Nome tipo"), t.Type.Name, c.SourceGroup);
                     else if (t.Type != null) AddGroup(values, _cfg.FindParser("tipi di sistema", "Nome tipo"), t.Type.Name, c.SourceGroup);
                     break;
 
                 case "nome famiglia":
-                    if (t.Type is FamilySymbol) AddGroup(values, _cfg.FindParser("famiglie caricabili", "Nome famiglia"), ((FamilySymbol)t.Type).Family.Name, c.SourceGroup);
+                    if (RevitUtil.IsLoadable(t.Type)) AddGroup(values, _cfg.FindParser("famiglie caricabili", "Nome famiglia"), FamilyNameOf(t.Type), c.SourceGroup);
                     break;
 
                 case "type mark":
@@ -511,6 +525,12 @@ namespace ModelProof
                     break;
             }
             return values;
+        }
+
+        private static string FamilyNameOf(ElementType t)
+        {
+            var fs = t as FamilySymbol;
+            return fs != null && fs.Family != null ? fs.Family.Name : t != null ? t.FamilyName : null;
         }
 
         private void AddGroup(List<string> values, Rule parser, string text, string group)

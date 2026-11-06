@@ -232,15 +232,24 @@ namespace ModelProof
             { "Temporary Structures", "OST_TemporaryStructure" }, { "Topography", "OST_Topography" }, { "Toposolid", "OST_Toposolid" },
             { "Vertical Circulation", "OST_VerticalCirculation" }, { "Walls", "OST_Walls" }, { "Walls - Reveals", "OST_Reveals" },
             { "Walls - Sweep", "OST_Cornices" }, { "Windows", "OST_Windows" }, { "Wires", "OST_Wire" },
+            // parti di ringhiere e scale (come le mostra Revit in inglese)
+            { "Top Rails", "OST_RailingTopRail" }, { "Handrails", "OST_RailingHandRail" }, { "Balusters", "OST_StairsRailingBaluster" },
+            { "Supports", "OST_RailingSupport|OST_StairsStringerCarriage" }, { "Runs", "OST_StairsRuns" }, { "Landings", "OST_StairsLandings" },
+            { "Railing Terminations", "OST_RailingTermination" }, { "Stringers", "OST_StairsStringerCarriage" },
         };
 
-        /// <summary>Id numerico della categoria Revit con quel nome inglese (null se sconosciuta in questa versione).</summary>
-        public static long? CategoryId(string englishName)
+        /// <summary>Id numerici delle categorie Revit con quel nome inglese (vuoto se sconosciuta in questa versione).</summary>
+        public static List<long> CategoryIds(string englishName)
         {
-            string ost;
-            BuiltInCategory bic;
-            if (EnglishCategories.TryGetValue(englishName.Trim(), out ost) && Enum.TryParse(ost, out bic)) return (long)bic;
-            return null;
+            var ids = new List<long>();
+            string osts;
+            if (!EnglishCategories.TryGetValue(englishName.Trim(), out osts)) return ids;
+            foreach (string ost in osts.Split('|'))
+            {
+                BuiltInCategory bic;
+                if (Enum.TryParse(ost, out bic)) ids.Add((long)bic);
+            }
+            return ids;
         }
 
         /// <summary>Insieme delle categorie escluse: quelle fisse più quelle dell'elenco [ESCLUSIONI] (nome inglese o di Revit).</summary>
@@ -254,11 +263,22 @@ namespace ModelProof
             }
             foreach (string name in configured)
             {
-                long? id = CategoryId(name);
-                if (id.HasValue) ex.Ids.Add(id.Value);
-                else ex.Names.Add(name.Trim());
+                List<long> ids = CategoryIds(name);
+                foreach (long id in ids) ex.Ids.Add(id);
+                ex.Names.Add(name.Trim());   // anche per nome: vale con Revit in un'altra lingua
             }
             return ex;
+        }
+
+        /// <summary>
+        /// Tipo di una famiglia caricabile. Pannelli di sistema delle facciate continue e montanti sono FamilySymbol
+        /// nell'API ma in Revit sono famiglie di sistema: si nominano come i tipi di sistema.
+        /// </summary>
+        public static bool IsLoadable(ElementType t)
+        {
+            if (!(t is FamilySymbol)) return false;
+            if (t is MullionType || t is PanelType) return false;
+            return true;
         }
 
         public static long IdOf(ElementId id)

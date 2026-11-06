@@ -51,3 +51,15 @@ ModelProof – registro delle modifiche
    regole selezionate (tutte se nessuna è selezionata), con filtro «Solo errori». Doppio clic o «Mostra nel modello»:
    seleziona e inquadra l'elemento (per tipi, famiglie e materiali una loro istanza). «Esporta CSV» con tutte le
    anomalie. L'ultima verifica di ogni progetto resta in memoria: «Ultimi risultati» la riapre senza rifarla.
+
+8. Correzioni dopo la prima prova sul modello architettonico:
+   - pannelli di sistema delle facciate continue e montanti si trattano come tipi di sistema (nell'API sono
+     FamilySymbol, ma in Revit non sono famiglie caricabili): nome del tipo come i tipi di sistema, nessun controllo
+     del nome della famiglia;
+   - [ESCLUSIONI] riconosce anche le parti di ringhiere e scale per nome inglese (Top Rails, Handrails, Balusters,
+     Supports, Railing Terminations, Runs, Landings); le categorie escluse si confrontano sempre anche con il nome
+     mostrato da Revit;
+   - nuova chiave «se_assente» (errore | avviso | ignora) per gli elementi che non hanno proprio il parametro;
+   - i codici ripetuti si segnalano solo negli elenchi usati dai segnaposto;
+   - i risultati elencano i collegamenti trovati, con il ruolo riconosciuto o «non caricato», così si capisce
+     perché un confronto con il riferimento non parte.

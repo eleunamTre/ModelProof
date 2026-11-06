@@ -180,6 +180,11 @@ namespace ModelProof
             d["«{0}» deve essere un numero"] = "«{0}» must be a number";
             d["«{0}» non compilato"] = "«{0}» not filled in";
             d["«{0}» è «{1}»: dovrebbe essere uguale"] = "«{0}» is «{1}»: it should be the same";
+            d["{0} (non caricato)"] = "{0} (not loaded)";
+            d["{0} (ruolo non riconosciuto)"] = "{0} (role not recognized)";
+            d["Collegamenti: {0}."] = "Links: {0}.";
+            d["Nessun modello Revit collegato."] = "No linked Revit model.";
+            d["«se_assente» deve essere errore, avviso o ignora"] = "«se_assente» must be errore, avviso or ignora";
         }
     }
 }

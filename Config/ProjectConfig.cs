@@ -31,6 +31,8 @@ namespace ModelProof
         public List<ConfigRow> Rows;
         /// <summary>Colonne usate come codice dai segnaposto (1 = prima); per il controllo dei doppioni.</summary>
         public int KeyColumns = 1;
+        /// <summary>Usato da almeno un segnaposto: solo allora i codici ripetuti contano.</summary>
+        public bool Referenced;
 
         public IEnumerable<string> Codes(int column)
         {
@@ -86,6 +88,7 @@ namespace ModelProof
         public List<string> NumberBy = new List<string>();   // parti che formano il gruppo della numerazione
         public string Duplicates = "no";                     // errore | avviso | no
         public string Gaps = "no";
+        public string Absent = "errore";                     // parametro assente: errore | avviso | ignora
         public List<WarnFormat> WarnFormats = new List<WarnFormat>();
         public List<string> EmptyValues = new List<string>();
         public List<string> ValidValues = new List<string>();
@@ -259,6 +262,9 @@ namespace ModelProof
                 r.Reference = s.Get("riferimento").Trim();
                 r.Duplicates = s.Get("doppioni", "no").Trim().ToLowerInvariant();
                 r.Gaps = s.Get("salti", "no").Trim().ToLowerInvariant();
+                r.Absent = s.Get("se_assente", "errore").Trim().ToLowerInvariant();
+                if (r.Absent != "errore" && r.Absent != "avviso" && r.Absent != "ignora")
+                    Add(IssueLevel.Errore, s.Find("se_assente").Line, where, L.T("«se_assente» deve essere errore, avviso o ignora"));
                 foreach (string v in SplitList(s.Get("valori_vuoti"), ';')) r.EmptyValues.Add(Unquote(v));
                 foreach (string v in SplitList(s.Get("valori_validi"), ';')) r.ValidValues.Add(Unquote(v));
                 r.ToleranceMm = ReadNumber(s, "tolleranza_mm", r.ToleranceMm, where);
@@ -551,6 +557,7 @@ namespace ModelProof
         {
             foreach (CodeList list in Lists.Values)
             {
+                if (!list.Referenced) continue;
                 var seen = new Dictionary<string, int>(StringComparer.Ordinal);
                 var dup = new List<string>();
                 foreach (ConfigRow r in list.Rows)
@@ -680,6 +687,7 @@ namespace ModelProof
                 if (!Lists.TryGetValue(name, out list)) throw new ConfigException(L.F("elenco [{0}] non trovato", name));
                 if (column < 1) throw new ConfigException(L.T("la colonna parte da 1"));
                 list.KeyColumns = Math.Max(list.KeyColumns, column);
+                list.Referenced = true;
                 List<string> codes = list.Codes(column).Distinct(StringComparer.Ordinal).OrderByDescending(c => c.Length).ToList();
                 if (codes.Count == 0) throw new ConfigException(L.F("l'elenco [{0}] non ha codici nella colonna {1}", name, column));
                 return "(?:" + string.Join("|", codes.Select(c => Regex.Escape(c))) + ")";
