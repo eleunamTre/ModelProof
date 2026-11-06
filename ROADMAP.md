@@ -18,6 +18,7 @@ sintesi e foto delle anomalie, verifica di più modelli insieme (ARC, MEP, URS).
 - Controllo «nome file»: codice del modello coerente con la descrizione, un solo modello per ruolo; riferimento
   riconosciuto anche dalla descrizione quando il codice è sbagliato (MODIFICHE 11).
 - Modello e file di ogni anomalia nella finestra, nel CSV e nell'Excel (MODIFICHE 12).
+- Righe OK in verde nella finestra, nascoste da «Solo errori» (MODIFICHE 14–15).
 - Dettaglio delle coordinate di tutti i file (valori, nord reale, coordinate condivise, posizionamento dei
   collegamenti) nella finestra e nell'Excel (MODIFICHE 13).
 
@@ -33,4 +34,5 @@ sintesi e foto delle anomalie, verifica di più modelli insieme (ARC, MEP, URS).
    riferimento, poi gli altri a cascata. Report unico diviso anche per modello (sintesi per file e filtro per
    modello nella finestra).
 5. Finestra di configurazione completa (una scheda per controllo) che scrive lo stesso file di testo.
-6. Da decidere: tolleranze di coordinate e angoli, soglia dell'esito PARZIALE, parametri in lista ma assenti.
+6. Da decidere: tolleranze di coordinate e angoli, soglia dell'esito PARZIALE, parametri in lista ma assenti;
+   righe OK delle regole di campi nella finestra (tenerle, metterle dietro un'opzione o toglierle dopo le prove).
