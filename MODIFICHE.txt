@@ -1,0 +1,4 @@
+ModelProof – registro delle modifiche
+=====================================
+
+1. Creazione della repository: .gitignore, registro delle modifiche e roadmap.
