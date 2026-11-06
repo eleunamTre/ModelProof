@@ -42,21 +42,59 @@ namespace ModelProof
         }
     }
 
-    /// <summary>Regola [REGOLA nome]. Per ora si leggono i campi comuni; il resto lo useranno i controlli.</summary>
+    /// <summary>Parte del formato che deve coincidere con un'altra fonte (riga «coerenza»).</summary>
+    internal sealed class Coherence
+    {
+        public string Group;           // parte del valore controllato, es. CAT
+        public string Source;          // nome, nome tipo, nome famiglia, type mark, livello, file (null se testo fisso)
+        public string SourceGroup;     // parte della fonte, es. CAT
+        public string Literal;         // testo fisso atteso (se Source è null)
+        public bool Warning;           // «(avviso)»: segnalato come avviso anche se la regola è un errore
+
+        public override string ToString()
+        {
+            return Group + " = " + (Source == null ? "\"" + Literal + "\"" : Source + "." + SourceGroup) + (Warning ? " (avviso)" : "");
+        }
+    }
+
+    /// <summary>Formato atteso solo come avviso per un campo (riga «formato_avviso»).</summary>
+    internal sealed class WarnFormat
+    {
+        public string Field;
+        public string Format;
+        public Regex Regex;
+    }
+
+    /// <summary>Regola [REGOLA nome]: controllo già pronto («controllo») o controllo di campi («oggetto» + «campo»).</summary>
     internal sealed class Rule
     {
         public string Name;
         public int Line;
         public ConfigSection Section;
         public List<string> Models = new List<string>();
-        public string Object;
+        public string Control;         // controllo già pronto (minuscolo), null se è una regola di campi
+        public string Object;          // oggetto (minuscolo), null se è un controllo già pronto
         public List<string> Fields = new List<string>();
         public string Format;          // testo del formato, vuoto = basta che sia compilato
         public Regex Regex;            // formato compilato (null se non c'è o non è valido)
         public string Severity;        // errore | avviso
         public List<string> TestYes = new List<string>();
         public List<string> TestNo = new List<string>();
+        public List<Coherence> Coherence = new List<Coherence>();
+        public string EqualTo;         // parametro che deve avere lo stesso valore
+        public string NumberGroup;     // parte numerata (es. N)
+        public List<string> NumberBy = new List<string>();   // parti che formano il gruppo della numerazione
+        public string Duplicates = "no";                     // errore | avviso | no
+        public string Gaps = "no";
+        public List<WarnFormat> WarnFormats = new List<WarnFormat>();
+        public List<string> EmptyValues = new List<string>();
+        public List<string> ValidValues = new List<string>();
+        public string Reference;       // modello di riferimento (es. URS)
+        public double ToleranceMm = 1;
+        public double ToleranceDeg = 0.001;
 
+        public bool IsControl { get { return Control != null; } }
+        public bool AppliesTo(string role) { return role != null && Models.Contains(role); }
         public string Get(string key) { return Section.Get(key); }
     }
 
@@ -174,6 +212,26 @@ namespace ModelProof
                 if (p.Pattern != null) Log.Debug("Configurazione", "{" + p.Name + "} = " + p.Pattern);
         }
 
+        /// <summary>Controlli già pronti nel plugin (valore di «controllo»).</summary>
+        public static readonly string[] Controls =
+        {
+            "stesso edificio", "coordinate", "livelli uguali al riferimento", "copy monitor livelli",
+            "parametri condivisi", "codice categoria", "funzione ammessa", "categoria ammessa", "funzione muri"
+        };
+
+        /// <summary>Oggetti controllabili con le regole di campi (valore di «oggetto»).</summary>
+        public static readonly string[] Objects =
+        {
+            "livelli", "tipi di sistema", "famiglie caricabili", "tipi caricabili", "tipi", "istanze", "locali",
+            "materiali", "tipi di sistema impiantistico"
+        };
+
+        /// <summary>Fonti ammesse nella coerenza.</summary>
+        public static readonly string[] Sources = { "nome", "nome tipo", "nome famiglia", "type mark", "livello", "file" };
+
+        private static readonly Regex RxCoherence = new Regex("^(\\w+)\\s*=\\s*(?:\"([^\"]*)\"|([^.]+?)\\.(\\w+))\\s*(\\(avviso\\))?$", RegexOptions.CultureInvariant);
+        private static readonly Regex RxNumbering = new Regex(@"^(\w+)(?:\s+per\s+(.+))?$", RegexOptions.CultureInvariant);
+
         private void ReadRules()
         {
             foreach (ConfigSection s in File.Sections)
@@ -187,12 +245,24 @@ namespace ModelProof
                 }
                 var r = new Rule { Name = where, Line = s.Line, Section = s };
                 r.Models = SplitList(s.Get("modelli"), ',');
-                r.Object = s.Get("oggetto");
+                string control = s.Get("controllo").Trim().ToLowerInvariant();
+                string obj = s.Get("oggetto").Trim().ToLowerInvariant();
+                r.Control = control.Length > 0 ? control : null;
+                r.Object = obj.Length > 0 ? obj : null;
                 r.Fields = SplitList(s.Get("campo"), ';');
                 r.Format = s.Get("formato");
                 r.Severity = s.Get("gravita").ToLowerInvariant();
                 r.TestYes = SplitList(s.Get("prova_si"), ';');
                 r.TestNo = SplitList(s.Get("prova_no"), ';');
+                r.EqualTo = s.Get("uguale_a").Trim();
+                if (r.EqualTo.Length == 0) r.EqualTo = null;
+                r.Reference = s.Get("riferimento").Trim();
+                r.Duplicates = s.Get("doppioni", "no").Trim().ToLowerInvariant();
+                r.Gaps = s.Get("salti", "no").Trim().ToLowerInvariant();
+                foreach (string v in SplitList(s.Get("valori_vuoti"), ';')) r.EmptyValues.Add(Unquote(v));
+                foreach (string v in SplitList(s.Get("valori_validi"), ';')) r.ValidValues.Add(Unquote(v));
+                r.ToleranceMm = ReadNumber(s, "tolleranza_mm", r.ToleranceMm, where);
+                r.ToleranceDeg = ReadNumber(s, "tolleranza_gradi", r.ToleranceDeg, where);
                 Rules.Add(r);
 
                 if (r.Models.Count == 0) Add(IssueLevel.Errore, s.Line, where, L.T("manca «modelli»"));
@@ -200,7 +270,19 @@ namespace ModelProof
                     if (!Roles.Contains(m)) Add(IssueLevel.Errore, s.Line, where, L.F("modello «{0}» sconosciuto (ammessi: URS, ARC, IMP)", m));
                 if (r.Severity != "errore" && r.Severity != "avviso")
                     Add(IssueLevel.Errore, s.Line, where, L.T("«gravita» deve essere «errore» o «avviso»"));
-                if (string.IsNullOrEmpty(r.Object)) Add(IssueLevel.Avviso, s.Line, where, L.T("manca «oggetto»"));
+                if (r.Control == null && r.Object == null)
+                    Add(IssueLevel.Errore, s.Line, where, L.T("serve «controllo» oppure «oggetto»"));
+                else if (r.Control != null && r.Object != null)
+                    Add(IssueLevel.Errore, s.Line, where, L.T("«controllo» e «oggetto» insieme: va scelto uno dei due"));
+                else if (r.Control != null && !Controls.Contains(r.Control))
+                    Add(IssueLevel.Errore, s.Find("controllo").Line, where, L.F("controllo «{0}» sconosciuto (ammessi: {1})", r.Control, string.Join(", ", Controls)));
+                else if (r.Object != null && !Objects.Contains(r.Object))
+                    Add(IssueLevel.Errore, s.Find("oggetto").Line, where, L.F("oggetto «{0}» sconosciuto (ammessi: {1})", r.Object, string.Join(", ", Objects)));
+                if (r.Object != null && r.Fields.Count == 0)
+                    Add(IssueLevel.Errore, s.Line, where, L.T("manca «campo»"));
+                foreach (string k in new[] { r.Duplicates, r.Gaps })
+                    if (k != "errore" && k != "avviso" && k != "no")
+                        Add(IssueLevel.Errore, s.Line, where, L.T("«doppioni» e «salti» devono essere errore, avviso o no"));
 
                 if (r.Format.Length > 0)
                 {
@@ -230,8 +312,160 @@ namespace ModelProof
                         Add(IssueLevel.Errore, s.Line, where, L.T("formato troppo complesso: la prova degli esempi non finisce"));
                     }
                 }
+
+                // formato solo come avviso, per singoli campi
+                ConfigEntry wf = s.Find("formato_avviso");
+                if (wf != null)
+                    foreach (string item in SplitList(wf.Value, ';'))
+                    {
+                        int colon = item.IndexOf(':');
+                        if (colon <= 0)
+                        {
+                            Add(IssueLevel.Errore, wf.Line, where, L.F("«formato_avviso»: manca «campo:» in «{0}»", item));
+                            continue;
+                        }
+                        var w = new WarnFormat { Field = item.Substring(0, colon).Trim(), Format = item.Substring(colon + 1).Trim() };
+                        if (!r.Fields.Any(f => string.Equals(f, w.Field, StringComparison.OrdinalIgnoreCase)))
+                            Add(IssueLevel.Errore, wf.Line, where, L.F("«formato_avviso»: «{0}» non è tra i campi della regola", w.Field));
+                        try
+                        {
+                            w.Regex = new Regex("^" + CompileFormat(w.Format, new HashSet<string>(StringComparer.Ordinal)) + "$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+                            r.WarnFormats.Add(w);
+                        }
+                        catch (ConfigException ex) { Add(IssueLevel.Errore, wf.Line, where, ex.Message); }
+                        catch (ArgumentException ex) { Add(IssueLevel.Errore, wf.Line, where, L.F("formato non valido: {0}", ex.Message)); }
+                    }
             }
             if (Rules.Count == 0) Add(IssueLevel.Avviso, 0, null, L.T("nessuna regola [REGOLA …] nel file"));
+
+            // seconda passata: coerenza e numerazione rimandano ad altre regole
+            foreach (Rule r in Rules) ReadCoherence(r);
+        }
+
+        private void ReadCoherence(Rule r)
+        {
+            string where = r.Name;
+            ConfigEntry ce = r.Section.Find("coerenza");
+            if (ce != null)
+                foreach (string clause in SplitList(ce.Value, ';'))
+                {
+                    Match m = RxCoherence.Match(clause);
+                    if (!m.Success)
+                    {
+                        Add(IssueLevel.Errore, ce.Line, where, L.F("coerenza «{0}» non riconosciuta: si scrive PARTE = fonte.PARTE oppure PARTE = \"testo\"", clause));
+                        continue;
+                    }
+                    var c = new Coherence { Group = m.Groups[1].Value, Warning = m.Groups[5].Success };
+                    if (m.Groups[2].Success) c.Literal = m.Groups[2].Value;
+                    else
+                    {
+                        c.Source = m.Groups[3].Value.Trim().ToLowerInvariant();
+                        c.SourceGroup = m.Groups[4].Value;
+                    }
+                    r.Coherence.Add(c);
+                    if (r.Regex != null && !HasGroup(r.Regex, c.Group))
+                        Add(IssueLevel.Errore, ce.Line, where, L.F("coerenza: il formato non ha la parte {{{0}}}", c.Group));
+                    if (c.Source == null) continue;
+                    if (!Sources.Contains(c.Source))
+                    {
+                        Add(IssueLevel.Errore, ce.Line, where, L.F("coerenza: fonte «{0}» sconosciuta (ammesse: {1})", c.Source, string.Join(", ", Sources)));
+                        continue;
+                    }
+                    if (c.Source == "file")
+                    {
+                        if (c.SourceGroup != "EDIF") Add(IssueLevel.Errore, ce.Line, where, L.T("coerenza: dal nome file si legge solo EDIF"));
+                        continue;
+                    }
+                    List<Rule> parsers = ParsersFor(c.Source, r.Object);
+                    if (parsers.Count == 0)
+                        Add(IssueLevel.Errore, ce.Line, where, L.F("coerenza: nessuna regola con formato legge «{0}»", c.Source));
+                    else if (!parsers.Any(p => HasGroup(p.Regex, c.SourceGroup)))
+                        Add(IssueLevel.Errore, ce.Line, where, L.F("coerenza: il formato di «{0}» non ha la parte {{{1}}}", c.Source, c.SourceGroup));
+                }
+
+            ConfigEntry ne = r.Section.Find("numerazione");
+            if (ne != null && ne.Value.Length > 0)
+            {
+                Match m = RxNumbering.Match(ne.Value.Trim());
+                if (!m.Success) Add(IssueLevel.Errore, ne.Line, where, L.T("numerazione: si scrive PARTE per PARTE PARTE…"));
+                else
+                {
+                    r.NumberGroup = m.Groups[1].Value;
+                    if (m.Groups[2].Success)
+                        foreach (string g in m.Groups[2].Value.Split(new[] { ' ', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries)) r.NumberBy.Add(g);
+                    if (r.Regex == null) Add(IssueLevel.Errore, ne.Line, where, L.T("numerazione senza formato"));
+                    else
+                        foreach (string g in new[] { r.NumberGroup }.Concat(r.NumberBy))
+                            if (!HasGroup(r.Regex, g)) Add(IssueLevel.Errore, ne.Line, where, L.F("numerazione: il formato non ha la parte {{{0}}}", g));
+                }
+            }
+            else if (r.Duplicates != "no" || r.Gaps != "no")
+                Add(IssueLevel.Avviso, r.Line, where, L.T("«doppioni» o «salti» senza «numerazione»: ignorati"));
+        }
+
+        /// <summary>
+        /// Regole che leggono una fonte di coerenza, secondo l'oggetto controllato: per «nome» di un tipo il nome della
+        /// famiglia (caricabili) o del tipo (sistema); per i materiali il nome del materiale.
+        /// </summary>
+        public List<Rule> ParsersFor(string source, string targetObject)
+        {
+            var list = new List<Rule>();
+            switch (source)
+            {
+                case "nome":
+                    if (targetObject == "materiali") AddParser(list, "materiali", "Nome");
+                    else { AddParser(list, "famiglie caricabili", "Nome famiglia"); AddParser(list, "tipi di sistema", "Nome tipo"); }
+                    break;
+                case "nome tipo":
+                    AddParser(list, "tipi caricabili", "Nome tipo"); AddParser(list, "tipi di sistema", "Nome tipo");
+                    break;
+                case "nome famiglia":
+                    AddParser(list, "famiglie caricabili", "Nome famiglia");
+                    break;
+                case "type mark":
+                    AddParser(list, "tipi", "Type Mark");
+                    break;
+                case "livello":
+                    AddParser(list, "livelli", "Nome");
+                    break;
+            }
+            return list;
+        }
+
+        /// <summary>Prima regola con formato per quell'oggetto e quel campo (null se non c'è).</summary>
+        public Rule FindParser(string obj, string field)
+        {
+            foreach (Rule r in Rules)
+                if (r.Object == obj && r.Regex != null && r.Fields.Count > 0 && string.Equals(r.Fields[0], field, StringComparison.OrdinalIgnoreCase))
+                    return r;
+            return null;
+        }
+
+        private void AddParser(List<Rule> list, string obj, string field)
+        {
+            Rule r = FindParser(obj, field);
+            if (r != null) list.Add(r);
+        }
+
+        private static bool HasGroup(Regex rx, string group)
+        {
+            return rx != null && rx.GroupNumberFromName(group) >= 0;
+        }
+
+        private double ReadNumber(ConfigSection s, string key, double fallback, string where)
+        {
+            ConfigEntry e = s.Find(key);
+            if (e == null) return fallback;
+            double v;
+            if (double.TryParse(e.Value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out v) && v >= 0) return v;
+            Add(IssueLevel.Errore, e.Line, where, L.F("«{0}» deve essere un numero", key));
+            return fallback;
+        }
+
+        private static string Unquote(string v)
+        {
+            v = v.Trim();
+            return v.Length >= 2 && v[0] == '"' && v[v.Length - 1] == '"' ? v.Substring(1, v.Length - 2) : v;
         }
 
         private void ReadChecklist()

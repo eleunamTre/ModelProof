@@ -6,10 +6,12 @@ sintesi e foto delle anomalie, verifica di più modelli insieme (ARC, MEP, URS).
 ## Fatto
 - Struttura del progetto per Revit 2024, 2025, 2026 e 2027 (stesso codice, una configurazione per versione).
 - Lettura e controllo del file di configurazione del progetto, prova delle regole (MODIFICHE 2–4).
+- Verifica del modello aperto: riconoscimento dal nome del file, regole di campi (formato, coerenza, numerazione),
+  coordinate e livelli rispetto al riferimento collegato, finestra dei risultati con CSV (MODIFICHE 5–7).
 
 ## Prossimi passi
-1. Riconoscimento dei modelli dal nome del file e primi controlli sul modello aperto: livelli e coordinate rispetto
-   all'URS, nomi di famiglie e tipi, Type Mark, codici delle istanze; finestra dei risultati.
+1. Controlli già pronti mancanti: parametri condivisi, codice categoria e funzione ammessa (elenchi), categoria
+   ammessa per il modello, funzione dei muri; numero del locale nella ZBS (locale che contiene l'elemento).
 2. Finestra di configurazione completa (una scheda per controllo) che scrive lo stesso file di testo.
 3. Controlli generali dagli script Dynamo: dimensione file, georeferenziazione, locali, modelli generici e famiglie
    locali, oggetti sovrapposti, funzione dei muri, collocazione rispetto ai livelli, inventario, parametri IFC,

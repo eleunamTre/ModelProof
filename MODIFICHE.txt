@@ -22,3 +22,32 @@ ModelProof – registro delle modifiche
 4. Pulsante «Regole del progetto»: sceglie il file di configurazione (ricordato per le volte successive), lo controlla
    e mostra errori, avvisi, regole, collegamento alla checklist ed elenchi; «Prova una regola» dice se un valore
    rispetta il formato e quali parti ha riconosciuto. Pulsante «Registro»: apre la cartella del registro.
+
+5. Regole del file di configurazione più precise: ogni regola ha «controllo» (controlli già pronti nel plugin) oppure
+   «oggetto» + «campo» (livelli, tipi di sistema, famiglie caricabili, tipi caricabili, tipi, istanze, locali,
+   materiali, tipi di sistema impiantistico). Nuove chiavi: «coerenza» (PARTE = fonte.PARTE oppure PARTE = "testo",
+   con «(avviso)»; fonti: nome, nome tipo, nome famiglia, Type Mark, livello, file), «uguale_a», «numerazione»
+   (PARTE per PARTE…) con «doppioni» e «salti», «formato_avviso», «valori_vuoti», «valori_validi», «riferimento»,
+   «tolleranza_mm», «tolleranza_gradi». Il controllo del file verifica anche che le parti citate esistano nei formati.
+
+6. Pulsante «Verifica modello» (sola lettura, il modello non viene modificato):
+   - riconosce il modello (URS, ARC, IMP) e il codice edificio dai campi del nome del file (per i modelli condivisi
+     il nome del file centrale) e controlla che la descrizione finale corrisponda;
+   - regole di campi: valore assente, non compilato, formato, coerenza con la fonte, uguaglianza con un altro
+     parametro, numerazione (doppioni e salti per gruppo), formati solo come avviso. Istanze: elementi di modello con
+     tipo e geometria, escluse le categorie in [ESCLUSIONI], quelle che non sono oggetti costruiti (locali, livelli,
+     griglie, collegamenti, gruppi…), i componenti annidati e le opzioni di progetto secondarie; i parametri non
+     trovati sull'istanza si cercano sul tipo. Locali: solo quelli posizionati e chiusi. Materiali: quelli usati
+     dagli elementi. Tipi di sistema impiantistico: quelli assegnati a tubi e condotti, con i livelli degli elementi;
+   - controlli già pronti: stesso codice edificio nei modelli collegati; coordinate rispetto al modello di
+     riferimento collegato (Survey Point, Project Base Point, nord reale, posizione del collegamento in coordinate
+     condivise); livelli uguali al riferimento (nomi e quote in coordinate condivise); copy/monitor dei livelli.
+     Gli altri controlli (parametri condivisi, codice categoria, funzione ammessa, categoria ammessa, funzione muri)
+     risultano «non eseguita» finché non vengono scritti;
+   - tempi e risultati di ogni regola nel registro.
+
+7. Finestra dei risultati: in alto l'esito di ogni regola (SI, SI con avvisi, PARZIALE, NO secondo la soglia della
+   configurazione, non si applica, non eseguita) con oggetti controllati, errori e avvisi; in basso le anomalie delle
+   regole selezionate (tutte se nessuna è selezionata), con filtro «Solo errori». Doppio clic o «Mostra nel modello»:
+   seleziona e inquadra l'elemento (per tipi, famiglie e materiali una loro istanza). «Esporta CSV» con tutte le
+   anomalie. L'ultima verifica di ogni progetto resta in memoria: «Ultimi risultati» la riapre senza rifarla.

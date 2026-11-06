@@ -229,9 +229,11 @@ namespace ModelProof
             foreach (Rule r in c.Rules)
             {
                 string models = string.Join(", ", r.Models);
-                string fmt = r.Format.Length > 0 ? r.Format : L.T("(nessun formato)");
+                string what = r.IsControl ? L.F("controllo: {0}", r.Control)
+                    : r.Object + " / " + string.Join(" ; ", r.Fields) + (r.Format.Length > 0 ? "  " + r.Format : "");
                 string tests = r.TestYes.Count + r.TestNo.Count > 0 ? L.F("   esempi: {0} giusti, {1} sbagliati", r.TestYes.Count, r.TestNo.Count) : "";
-                sb.AppendLine(string.Format("  {0,-36} {1,-14} {2,-7} {3}{4}", r.Name, models, r.Severity, fmt, tests));
+                sb.AppendLine(string.Format("  {0,-36} {1,-14} {2,-7} {3}{4}", r.Name, models, r.Severity, what, tests));
+                if (r.Coherence.Count > 0) sb.AppendLine(string.Format("  {0,-36} {1}", "", L.F("coerenza: {0}", string.Join(" ; ", r.Coherence))));
             }
             sb.AppendLine();
 

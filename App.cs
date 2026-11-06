@@ -34,6 +34,14 @@ namespace ModelProof
             try { app.CreateRibbonTab(tabName); } catch { /* scheda già esistente */ }
             string asm = Assembly.GetExecutingAssembly().Location;
 
+            RibbonPanel pCheck = app.CreateRibbonPanel(tabName, L.T("Verifica"));
+            pCheck.AddItem(Push("Check", "Verifica\nmodello", asm, typeof(CheckModelCommand), "check",
+                "Controlla il modello aperto con le regole del file di configurazione: riconosce il modello dal nome del file, confronta livelli e coordinate con l'URS collegato, controlla codifiche e parametri. Il modello non viene modificato.",
+                typeof(ProjectAvailability)));
+            pCheck.AddItem(Push("Results", "Ultimi\nrisultati", asm, typeof(LastResultsCommand), "results",
+                "Riapre i risultati dell'ultima verifica del progetto attivo, senza rifarla.",
+                typeof(ProjectAvailability)));
+
             RibbonPanel pConfig = app.CreateRibbonPanel(tabName, L.T("Configurazione"));
             pConfig.AddItem(Push("Config", "Regole del\nprogetto", asm, typeof(ConfigCommand), "config",
                 "Sceglie il file di configurazione del progetto (regole, codifiche, elenchi, collegamento alla checklist), lo controlla e permette di provare un valore con una regola.",
