@@ -122,3 +122,14 @@ ModelProof – registro delle modifiche
    - nuovo valore «Nord di progetto → nord reale (PBP)»: l'angolo «Angle to True North» del Project Base Point,
      confrontato tra i file come il nord reale della posizione condivisa; colonna nella tabella «Coordinate...» e
      nel foglio «Coordinate».
+
+15. Righe OK in verde nella finestra:
+   - le righe di dettaglio diventano righe «OK» verdi: per ogni regola si vede anche ciò che è conforme (ogni oggetto
+     e campo che ha passato tutti i controlli della regola, e per i controlli pronti ogni aspetto verificato con il
+     valore letto). Se lo stesso file, elemento e campo ha anche un'anomalia, la riga OK viene tolta;
+   - «Solo errori» nasconde avvisi e righe OK; le regole con esito SI sono verdi nell'elenco;
+   - coordinate: ogni aspetto (coordinate condivise presenti, collegamento in coordinate condivise, Survey Point,
+     Project Base Point, nord reale) è una riga OK o un'anomalia;
+   - tolto il «nord di progetto» del Project Base Point aggiunto in 14: non è un dato del modello ma solo
+     l'orientamento delle viste, il controllo resta sul nord reale;
+   - CSV ed Excel restano senza righe OK (solo anomalie); il foglio «Coordinate» resta con tutti i valori.

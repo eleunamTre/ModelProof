@@ -54,15 +54,14 @@ namespace ModelProof
             // ---- dettaglio delle coordinate: il file verificato e i collegamenti
             if (run.Coordinates.Count > 0)
             {
-                int c = x.AddSheet(L.T("Coordinate"), new double[] { 8, 40, 14, 13, 13, 10, 13, 13, 10, 14, 12, 14, 14, 11, 11, 70 }, true);
+                int c = x.AddSheet(L.T("Coordinate"), new double[] { 8, 40, 14, 13, 13, 10, 13, 13, 10, 12, 14, 14, 11, 11, 70 }, true);
                 x.AddRow(c, XlsxWriter.RowStyle.Header, L.T("Modello"), L.T("File"), L.T("Ruolo nella verifica"),
-                    "SP E/W (m)", "SP N/S (m)", "SP Q (m)", "PBP E/W (m)", "PBP N/S (m)", "PBP Q (m)", L.T("Nord di progetto → nord reale (PBP)"), L.T("Nord reale (°)"),
+                    "SP E/W (m)", "SP N/S (m)", "SP Q (m)", "PBP E/W (m)", "PBP N/S (m)", "PBP Q (m)", L.T("Nord reale (°)"),
                     L.T("Coordinate condivise nel file"), L.T("Collegato in coordinate condivise"), L.T("Scarto (mm)"), L.T("Rotazione (°)"), L.T("Problemi"));
                 foreach (CoordinateRow r in run.Coordinates)
                     x.AddRow(c, r.Problems.Count > 0 ? XlsxWriter.RowStyle.Error : XlsxWriter.RowStyle.Normal,
                         r.Role, r.File, r.Host ? L.T("file verificato") : L.T("collegamento"),
                         Val(r.Survey, 0), Val(r.Survey, 1), Val(r.Survey, 2), Val(r.BasePoint, 0), Val(r.BasePoint, 1), Val(r.BasePoint, 2),
-                        double.IsNaN(r.ProjectNorth) ? null : (object)Math.Round(r.ProjectNorth, 4),
                         double.IsNaN(r.North) ? null : (object)Math.Round(r.North, 4),
                         r.SharedDefined ? L.T("sì") : L.T("no"),
                         r.LinkShared == null ? "" : r.LinkShared.Value ? L.T("sì") : L.T("no"),
@@ -73,15 +72,15 @@ namespace ModelProof
             // ---- un foglio per sezione, nell'ordine delle regole
             var chapters = new List<string>();
             foreach (RuleResult r in run.Results)
-                if (r.Issues.Count > 0 && !chapters.Contains(r.Rule.Chapter)) chapters.Add(r.Rule.Chapter);
+                if (r.Issues.Any(i => !i.Ok) && !chapters.Contains(r.Rule.Chapter)) chapters.Add(r.Rule.Chapter);   // le righe OK solo nella finestra
             foreach (string chapter in chapters)
             {
                 int sh = x.AddSheet(chapter, new double[] { 28, 9, 12, 8, 34, 11, 22, 40, 22, 26, 70 }, true);
                 x.AddRow(sh, XlsxWriter.RowStyle.Header, L.T("Regola"), L.T("Gravità"), L.T("Tipo"), L.T("Modello"), L.T("File"), "ID", L.T("Categoria"),
                     L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema"));
                 foreach (RuleResult r in run.Results.Where(r => r.Rule.Chapter == chapter))
-                    foreach (Issue i in r.Issues.OrderBy(i => i.Priority))
-                        x.AddRow(sh, i.Priority == 0 ? XlsxWriter.RowStyle.Error : i.Priority == 1 ? XlsxWriter.RowStyle.Unlisted : i.Priority == 2 ? XlsxWriter.RowStyle.Warning : XlsxWriter.RowStyle.Normal,
+                    foreach (Issue i in r.Issues.Where(i => !i.Ok).OrderBy(i => i.Priority))
+                        x.AddRow(sh, i.Priority == 0 ? XlsxWriter.RowStyle.Error : i.Priority == 1 ? XlsxWriter.RowStyle.Unlisted : XlsxWriter.RowStyle.Warning,
                             i.Rule, i.LevelText, KindText(i.Kind), i.Role, i.File, i.ElementId >= 0 ? (object)i.ElementId : null,
                             i.Category, i.FamilyType, i.Field, i.Value, i.Message);
             }

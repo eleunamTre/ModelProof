@@ -25,7 +25,6 @@ namespace ModelProof
             list.Columns.Add(L.T("File"), 230);
             list.Columns.Add("Survey Point", 250);
             list.Columns.Add("Project Base Point", 250);
-            list.Columns.Add(L.T("Nord di progetto → nord reale (PBP)"), 110, HorizontalAlignment.Right);
             list.Columns.Add(L.T("Nord reale (°)"), 95, HorizontalAlignment.Right);
             list.Columns.Add(L.T("Coordinate condivise nel file"), 95);
             list.Columns.Add(L.T("Collegato in coordinate condivise"), 95);
@@ -36,12 +35,11 @@ namespace ModelProof
                 it.SubItems.Add(r.Host ? L.F("{0} (file verificato)", r.File) : r.File);
                 it.SubItems.Add(Checker.Coord(r.Survey));
                 it.SubItems.Add(Checker.Coord(r.BasePoint));
-                it.SubItems.Add(double.IsNaN(r.ProjectNorth) ? "" : r.ProjectNorth.ToString("F4", CultureInfo.InvariantCulture));
                 it.SubItems.Add(double.IsNaN(r.North) ? "" : r.North.ToString("F4", CultureInfo.InvariantCulture));
                 it.SubItems.Add(r.SharedDefined ? L.T("sì") : L.T("no"));
                 it.SubItems.Add(r.LinkShared == null ? "" : r.LinkShared.Value ? L.T("sì") : L.T("no"));
                 it.SubItems.Add(r.Problems.Count > 0 ? string.Join("; ", r.Problems) : L.T("Conforme"));
-                if (r.Problems.Count > 0) it.ForeColor = Color.FromArgb(190, 40, 40);
+                it.ForeColor = r.Problems.Count > 0 ? Color.FromArgb(190, 40, 40) : Color.FromArgb(30, 120, 60);
                 list.Items.Add(it);
             }
             if (run.Coordinates.Count == 0) list.Items.Add(new ListViewItem(L.T("Coordinate non lette: vedere il registro.")));

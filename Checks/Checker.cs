@@ -137,6 +137,7 @@ namespace ModelProof
                 }
                 foreach (Issue i in rr.Issues)
                     if (i.File.Length == 0) { i.File = _info.FileName; i.Role = _info.RoleText; }
+                DropFailedOk(rr);
                 Log.Write("Verifica", string.Format("{0}: {1} controllati, {2} errori, {3} avvisi, {4} ms{5}",
                     rule.Name, rr.Checked, rr.Errors, rr.Warnings, sw.ElapsedMilliseconds, rr.Note != null ? " (" + rr.Note + ")" : ""));
             }
@@ -245,6 +246,7 @@ namespace ModelProof
                             rr.Issues.Add(MakeIssue(rule, t, error && rule.Absent == "errore", IssueKind.Mancante, field, "", L.F("parametro «{0}» assente", field)));
                         continue;
                     }
+                    rr.Issues.Add(MakeOk(rule, t, field, value));
                     if (IsEmpty(value, rule))
                     {
                         rr.Issues.Add(MakeIssue(rule, t, error, IssueKind.Mancante, field, value, L.F("«{0}» non compilato", field)));
@@ -627,7 +629,7 @@ namespace ModelProof
                 rr.Checked++;
                 int before = rr.Issues.Count;
                 string who = m == _info ? L.T("questo modello") : L.T("collegamento");
-                rr.Issues.Add(InfoRow(rule, m.FileName, m.RoleText, who, m.RoleCode + " / " + m.Description,
+                rr.Issues.Add(OkRow(rule, m.FileName, m.RoleText, who, m.RoleCode + " / " + m.Description,
                     L.F("dal codice: {0}; dalla descrizione: {1}", m.RoleText, m.DescriptionRole ?? "?")));
                 if (m.Role == null)
                 {
@@ -658,14 +660,14 @@ namespace ModelProof
                 rr.Issues.Add(ControlIssue(rule, error, L.T("nome file"), _info.FileName, L.T("codice edificio non letto dal nome del file")));
                 return;
             }
-            rr.Issues.Add(InfoRow(rule, _info.FileName, _info.RoleText, L.T("Codice edificio"), _info.Building, L.T("file verificato")));
+            rr.Issues.Add(OkRow(rule, _info.FileName, _info.RoleText, L.T("Codice edificio"), _info.Building, L.T("file verificato")));
             foreach (LinkedModel l in _links.Where(x => x.Info.Role != null))
             {
                 rr.Checked++;
-                rr.Issues.Add(InfoRow(rule, l.Info.FileName, l.Info.RoleText, L.T("Codice edificio"), l.Info.Building ?? "", L.T("collegamento")));
+                rr.Issues.Add(OkRow(rule, l.Info.FileName, l.Info.RoleText, L.T("Codice edificio"), l.Info.Building ?? "", L.T("collegamento")));
                 if (!string.Equals(l.Info.Building, _info.Building, StringComparison.Ordinal))
                 {
-                    Issue i = ControlIssue(rule, error, L.T("nome file"), l.Info.FileName,
+                    Issue i = ControlIssue(rule, error, L.T("Codice edificio"), l.Info.Building ?? "",
                         L.F("il collegamento {0} ha codice edificio «{1}», questo modello «{2}»", l.Info.Role, l.Info.Building, _info.Building));
                     i.File = l.Info.FileName;
                     i.Role = l.Info.RoleText;
@@ -709,10 +711,10 @@ namespace ModelProof
             return Math.Abs((a - b + 540.0) % 360.0 - 180.0);
         }
 
-        /// <summary>Riga di dettaglio (valore letto), mostrata anche quando la regola è conforme.</summary>
-        private static Issue InfoRow(Rule rule, string file, string role, string field, string value, string message, Element e = null)
+        /// <summary>Riga conforme (valore letto), mostrata in verde anche quando la regola è conforme.</summary>
+        private static Issue OkRow(Rule rule, string file, string role, string field, string value, string message, Element e = null)
         {
-            var i = new Issue { Rule = rule.Name, Info = true, Kind = IssueKind.Controllo, File = file ?? "", Role = role ?? "", Field = field ?? "", Value = value ?? "", Message = message ?? "" };
+            var i = new Issue { Rule = rule.Name, Ok = true, Kind = IssueKind.Controllo, File = file ?? "", Role = role ?? "", Field = field ?? "", Value = value ?? "", Message = message ?? "" };
             if (e != null) { i.ElementId = e.Id.Value; i.ShowId = e.Id.Value; i.FamilyType = e.Name ?? ""; try { i.Category = e.Category != null ? e.Category.Name : ""; } catch { } }
             return i;
         }
@@ -740,13 +742,6 @@ namespace ModelProof
             row.Survey = Meters(BasePointCoordinates(doc, true));
             row.BasePoint = Meters(BasePointCoordinates(doc, false));
             try { row.North = TrueNorthDegrees(doc); } catch { }
-            try
-            {
-                BasePoint pbp = new FilteredElementCollector(doc).OfClass(typeof(BasePoint)).Cast<BasePoint>().FirstOrDefault(b => !b.IsShared);
-                Parameter a = pbp != null ? pbp.get_Parameter(BuiltInParameter.BASEPOINT_ANGLETON_PARAM) : null;
-                if (a != null) row.ProjectNorth = Degrees(a.AsDouble());
-            }
-            catch { }
             // senza coordinate condivise la posizione attiva coincide con il sistema interno (nessuno spostamento né rotazione)
             try
             {
@@ -757,9 +752,14 @@ namespace ModelProof
             return row;
         }
 
+        private static void Aspect(CoordinateRow row, string field, string value, bool ok, string message, bool linkPosition = false)
+        {
+            row.Aspects.Add(new CoordinateAspect { Field = field, Value = value ?? "", Ok = ok, Message = ok ? "" : message, LinkPosition = linkPosition });
+        }
+
         /// <summary>
-        /// Dettaglio delle coordinate: il file verificato e ogni collegamento caricato, con le differenze rispetto al
-        /// file verificato (tolleranze della regola «coordinate», se c'è).
+        /// Dettaglio delle coordinate: il file verificato e ogni collegamento caricato, ogni aspetto conforme o no
+        /// rispetto al file verificato (tolleranze della regola «coordinate», se c'è).
         /// </summary>
         private void BuildCoordinates(CheckRun run)
         {
@@ -769,7 +769,11 @@ namespace ModelProof
             CoordinateRow me;
             try { me = CoordinatesOf(_doc, _info, true); }
             catch (Exception ex) { Log.Error("Coordinate", ex); return; }
-            if (!me.SharedDefined) me.Problems.Add(L.T("nessun sistema di coordinate condivise: coincide con quello interno"));
+            string noShared = L.T("nessun sistema di coordinate condivise: coincide con quello interno");
+            Aspect(me, L.T("Coordinate condivise nel file"), me.SharedDefined ? L.T("sì") : L.T("no"), me.SharedDefined, noShared);
+            Aspect(me, "Survey Point", Coord(me.Survey), me.Survey != null, L.T("punto non trovato"));
+            Aspect(me, "Project Base Point", Coord(me.BasePoint), me.BasePoint != null, L.T("punto non trovato"));
+            Aspect(me, L.T("Nord reale"), Deg(me.North), !double.IsNaN(me.North), L.T("angolo non letto"));
             _coords.Add(me);
             Transform tHost = _doc.ActiveProjectLocation.GetTotalTransform();
             foreach (LinkedModel l in _links)
@@ -777,7 +781,7 @@ namespace ModelProof
                 CoordinateRow row;
                 try { row = CoordinatesOf(l.Doc, l.Info, false); }
                 catch (Exception ex) { Log.Error("Coordinate " + l.Info.FileName, ex); continue; }
-                if (!row.SharedDefined) row.Problems.Add(L.T("nessun sistema di coordinate condivise: coincide con quello interno"));
+                Aspect(row, L.T("Coordinate condivise nel file"), row.SharedDefined ? L.T("sì") : L.T("no"), row.SharedDefined, noShared);
                 try
                 {
                     // in coordinate condivise se la posizione del collegamento è T(questo) · T(collegato)^-1
@@ -786,24 +790,21 @@ namespace ModelProof
                     row.LinkOffsetMm = actual.Origin.DistanceTo(expected.Origin) * FeetToMm;
                     row.LinkRotDeg = actual.BasisX.AngleTo(expected.BasisX) * 180.0 / Math.PI;
                     row.LinkShared = row.LinkOffsetMm <= tolMm && row.LinkRotDeg <= tolDeg;
-                    if (row.LinkShared == false)
-                        row.Problems.Add(L.F("non collegato in coordinate condivise: spostato di {0:F1} mm, ruotato di {1}°",
-                            row.LinkOffsetMm, row.LinkRotDeg.ToString("F4", CultureInfo.InvariantCulture)));
+                    Aspect(row, L.T("Collegato in coordinate condivise"),
+                        (row.LinkShared.Value ? L.T("sì") : L.T("no")) + L.F(" (scarto {0:F1} mm, rotazione {1})", row.LinkOffsetMm, Deg(row.LinkRotDeg)),
+                        row.LinkShared.Value, L.T("collegamento non posizionato in coordinate condivise"), true);
                 }
                 catch { }
-                if (row.Survey != null && me.Survey != null && DistMm(row.Survey, me.Survey) > tolMm)
-                    row.Problems.Add(L.F("Survey Point diverso: scarto {0:F1} mm", DistMm(row.Survey, me.Survey)));
-                if (row.BasePoint != null && me.BasePoint != null && DistMm(row.BasePoint, me.BasePoint) > tolMm)
-                    row.Problems.Add(L.F("Project Base Point diverso: scarto {0:F1} mm", DistMm(row.BasePoint, me.BasePoint)));
+                if (row.Survey != null && me.Survey != null)
+                    Aspect(row, "Survey Point", Coord(row.Survey), DistMm(row.Survey, me.Survey) <= tolMm,
+                        L.F("diverso dal file verificato: scarto {0:F1} mm", DistMm(row.Survey, me.Survey)));
+                if (row.BasePoint != null && me.BasePoint != null)
+                    Aspect(row, "Project Base Point", Coord(row.BasePoint), DistMm(row.BasePoint, me.BasePoint) <= tolMm,
+                        L.F("diverso dal file verificato: scarto {0:F1} mm", DistMm(row.BasePoint, me.BasePoint)));
                 if (!double.IsNaN(row.North) && !double.IsNaN(me.North))
                 {
                     double da = AngleDiff(row.North, me.North);
-                    if (da > tolDeg) row.Problems.Add(L.F("nord reale diverso: scarto {0}°", da.ToString("F4", CultureInfo.InvariantCulture)));
-                }
-                if (!double.IsNaN(row.ProjectNorth) && !double.IsNaN(me.ProjectNorth))
-                {
-                    double da = AngleDiff(row.ProjectNorth, me.ProjectNorth);
-                    if (da > tolDeg) row.Problems.Add(L.F("angolo nord di progetto / nord reale del Project Base Point diverso: scarto {0}°", da.ToString("F4", CultureInfo.InvariantCulture)));
+                    Aspect(row, L.T("Nord reale"), Deg(row.North), da <= tolDeg, L.F("diverso dal file verificato: scarto {0}", Deg(da)));
                 }
                 _coords.Add(row);
             }
@@ -820,18 +821,11 @@ namespace ModelProof
                 rr.Checked++;
                 LinkedModel link = row.Host ? null : _links.FirstOrDefault(l => l.Info.FileName == row.File);
                 string who = row.Host ? L.T("file verificato") : L.T("collegamento");
-                rr.Issues.Add(InfoRow(rule, row.File, row.Role, "Survey Point", Coord(row.Survey), who));
-                rr.Issues.Add(InfoRow(rule, row.File, row.Role, "Project Base Point", Coord(row.BasePoint), who));
-                rr.Issues.Add(InfoRow(rule, row.File, row.Role, L.T("Nord di progetto → nord reale (PBP)"), Deg(row.ProjectNorth), who));
-                rr.Issues.Add(InfoRow(rule, row.File, row.Role, L.T("Nord reale (posizione condivisa)"), Deg(row.North), who));
-                rr.Issues.Add(InfoRow(rule, row.File, row.Role, L.T("Coordinate condivise nel file"), row.SharedDefined ? L.T("sì") : L.T("no"), who));
-                if (!row.Host)
-                    rr.Issues.Add(InfoRow(rule, row.File, row.Role, L.T("Collegato in coordinate condivise"), row.LinkShared == true ? L.T("sì") : L.T("no"),
-                        L.F("scarto {0:F1} mm, rotazione {1}", row.LinkOffsetMm, Deg(row.LinkRotDeg)), link != null ? link.Instance : null));
-                foreach (string p in row.Problems)
+                foreach (CoordinateAspect a in row.Aspects)
                 {
-                    Issue i = ControlIssue(rule, error, row.Host ? L.T("questo modello") : L.T("collegamento"), Coord(row.Survey), p,
-                        link != null && row.LinkShared == false ? link.Instance : null);
+                    Element el = a.LinkPosition && link != null ? link.Instance : null;
+                    Issue i = a.Ok ? OkRow(rule, row.File, row.Role, a.Field, a.Value, who, el)
+                                   : ControlIssue(rule, error, a.Field, a.Value, a.Message, el);
                     i.File = row.File;
                     i.Role = row.Role;
                     rr.Issues.Add(i);
@@ -871,7 +865,7 @@ namespace ModelProof
                     continue;
                 }
                 double d = Math.Abs(z - other) * FeetToMm;
-                rr.Issues.Add(InfoRow(rule, _info.FileName, _info.RoleText, L.T("Quota"), (z * 0.3048).ToString("F3", CultureInfo.InvariantCulture) + " m",
+                rr.Issues.Add(OkRow(rule, _info.FileName, _info.RoleText, L.T("Quota"), (z * 0.3048).ToString("F3", CultureInfo.InvariantCulture) + " m",
                     L.F("{0}: in {1} {2} m", l.Name, RefName(rule), (other * 0.3048).ToString("F3", CultureInfo.InvariantCulture)), l));
                 if (d > rule.ToleranceMm)
                     rr.Issues.Add(ControlIssue(rule, error, L.T("Quota"), (z * 0.3048).ToString("F3", CultureInfo.InvariantCulture) + " m",
@@ -893,7 +887,7 @@ namespace ModelProof
                 if (!monitored)
                     rr.Issues.Add(ControlIssue(rule, error, L.T("Nome"), l.Name, L.F("livello non controllato (copy/monitor) da un collegamento {0}", RefName(rule)), l));
                 else
-                    rr.Issues.Add(InfoRow(rule, _info.FileName, _info.RoleText, L.T("Nome"), l.Name, L.T("controllato con copy/monitor"), l));
+                    rr.Issues.Add(OkRow(rule, _info.FileName, _info.RoleText, L.T("Nome"), l.Name, L.T("controllato con copy/monitor"), l));
             }
         }
 
@@ -911,6 +905,29 @@ namespace ModelProof
                 Rule = rule.Name, Error = error, Kind = kind, ElementId = t.Id, ShowId = t.ShowId, Category = t.Category,
                 FamilyType = t.FamilyType, Field = field, Value = value ?? "", Message = message
             };
+        }
+
+        private Issue MakeOk(Rule rule, Target t, string field, string value)
+        {
+            Issue i = MakeIssue(rule, t, false, IssueKind.Controllo, field, value, L.T("conforme"));
+            i.Ok = true;
+            return i;
+        }
+
+        /// <summary>
+        /// Toglie le righe OK di ciò che ha anche un'anomalia (stesso file, elemento e campo): resta verde solo
+        /// quello che ha passato tutti i controlli della regola.
+        /// </summary>
+        private static void DropFailedOk(RuleResult rr)
+        {
+            var failed = new HashSet<string>(rr.Issues.Where(i => !i.Ok).Select(OkKey), StringComparer.Ordinal);
+            if (failed.Count == 0) return;
+            rr.Issues.RemoveAll(i => i.Ok && failed.Contains(OkKey(i)));
+        }
+
+        private static string OkKey(Issue i)
+        {
+            return i.File + "|" + i.ElementId.ToString(CultureInfo.InvariantCulture) + "|" + i.Field;
         }
 
         private static string CatName(Element e)

@@ -215,6 +215,7 @@ namespace ModelProof
                 if (r.Skipped || (r.Note != null && r.Checked == 0)) it.ForeColor = UiTheme.Muted;
                 else if (r.Errors > 0) it.ForeColor = Color.FromArgb(190, 40, 40);
                 else if (r.Warnings > 0) it.ForeColor = Color.FromArgb(160, 90, 0);
+                else it.ForeColor = Color.FromArgb(30, 120, 60);
                 _rules.Items.Add(it);
             }
             // intestazioni delle sezioni con i totali
@@ -284,9 +285,9 @@ namespace ModelProof
                 ListViewGroup g;
                 if (!groups.TryGetValue(i.Rule, out g))
                 {
-                    int n = list.Count(x => x.Rule == i.Rule && !x.Info);
-                    int d = list.Count(x => x.Rule == i.Rule && x.Info);
-                    g = new ListViewGroup(i.Rule, d == 0 ? L.F("{0}  –  {1} anomalie", i.Rule, n) : L.F("{0}  –  {1} anomalie, {2} righe di dettaglio", i.Rule, n, d));
+                    int n = list.Count(x => x.Rule == i.Rule && !x.Ok);
+                    int d = list.Count(x => x.Rule == i.Rule && x.Ok);
+                    g = new ListViewGroup(i.Rule, d == 0 ? L.F("{0}  –  {1} anomalie", i.Rule, n) : L.F("{0}  –  {1} anomalie, {2} OK", i.Rule, n, d));
                     groups[i.Rule] = g;
                     _issues.Groups.Add(g);
                 }
@@ -298,7 +299,7 @@ namespace ModelProof
                 it.SubItems.Add(i.Field);
                 it.SubItems.Add(i.Value);
                 it.SubItems.Add(i.Message);
-                it.ForeColor = i.Priority == 0 ? Color.FromArgb(190, 40, 40) : i.Priority == 1 ? Color.FromArgb(120, 60, 170) : i.Priority == 2 ? Color.FromArgb(160, 90, 0) : Color.FromArgb(90, 90, 90);
+                it.ForeColor = i.Priority == 0 ? Color.FromArgb(190, 40, 40) : i.Priority == 1 ? Color.FromArgb(120, 60, 170) : i.Priority == 2 ? Color.FromArgb(160, 90, 0) : Color.FromArgb(30, 120, 60);
                 _issues.Items.Add(it);
             }
             _issues.EndUpdate();
@@ -346,14 +347,14 @@ namespace ModelProof
                     var sb = new StringBuilder();
                     sb.AppendLine(string.Join(";", new[] { L.T("Sezione"), L.T("Regola"), L.T("Gravità"), L.T("Tipo"), L.T("Modello"), L.T("File"), "ID", L.T("Categoria"), L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema") }.Select(Csv)));
                     foreach (RuleResult r in _run.Results)
-                        foreach (Issue i in r.Issues)
+                        foreach (Issue i in r.Issues.Where(x => !x.Ok))
                             sb.AppendLine(string.Join(";", new[]
                             {
                                 r.Rule.Chapter, i.Rule, i.LevelText, i.Kind.ToString(), i.Role, i.File, i.ElementId >= 0 ? i.ElementId.ToString() : "",
                                 i.Category, i.FamilyType, i.Field, i.Value, i.Message
                             }.Select(Csv)));
                     File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));
-                    Log.Write("Verifica", "esportate " + _run.Results.Sum(r => r.Issues.Count) + " anomalie in " + Path.GetFileName(dlg.FileName));
+                    Log.Write("Verifica", "esportate " + _run.Results.Sum(r => r.Issues.Count(x => !x.Ok)) + " anomalie in " + Path.GetFileName(dlg.FileName));
                 }
                 catch (Exception ex)
                 {
