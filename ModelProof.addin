@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>ModelProof</Name>
+    <Assembly>ModelProof\ModelProof.dll</Assembly>
+    <FullClassName>ModelProof.App</FullClassName>
+    <ClientId>7c3e9b2a-4f1d-4e6a-9c8b-2d5f1a7e3b60</ClientId>
+    <VendorId>OPEN</VendorId>
+    <VendorDescription>Open source</VendorDescription>
+  </AddIn>
+</RevitAddIns>

@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelProof", "ModelProof.csproj", "{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		R24|Any CPU = R24|Any CPU
+		R25|Any CPU = R25|Any CPU
+		R26|Any CPU = R26|Any CPU
+		R27|Any CPU = R27|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}.R24|Any CPU.ActiveCfg = R24|Any CPU
+		{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}.R24|Any CPU.Build.0 = R24|Any CPU
+		{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}.R25|Any CPU.ActiveCfg = R25|Any CPU
+		{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}.R25|Any CPU.Build.0 = R25|Any CPU
+		{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}.R26|Any CPU.ActiveCfg = R26|Any CPU
+		{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}.R26|Any CPU.Build.0 = R26|Any CPU
+		{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}.R27|Any CPU.ActiveCfg = R27|Any CPU
+		{3D8A6F21-5C4B-4E7A-A1D9-6B2C8E4F0A37}.R27|Any CPU.Build.0 = R27|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

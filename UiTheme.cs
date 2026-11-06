@@ -1,0 +1,150 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace ModelProof
+{
+    /// <summary>
+    /// Aspetto comune di tutte le finestre: stesso carattere, colori, pulsanti piatti con bordo sottile
+    /// e un colore d'accento per l'azione principale. Si applica alla fine del costruttore di ogni finestra.
+    /// </summary>
+    internal static class UiTheme
+    {
+        public static readonly Color Accent = Color.FromArgb(31, 114, 207);
+        public static readonly Color AccentHover = Color.FromArgb(24, 94, 172);
+        public static readonly Color Ink = Color.FromArgb(44, 62, 80);
+        public static readonly Color Muted = Color.FromArgb(110, 120, 130);
+        public static readonly Color Border = Color.FromArgb(200, 206, 214);
+        public static readonly Color Surface = Color.White;
+        public static readonly Color Panel = Color.FromArgb(244, 246, 248);
+        public static readonly Color Hover = Color.FromArgb(232, 240, 250);
+
+        public static Font Base { get { return new Font("Segoe UI", 9f); } }
+
+        /// <summary>Applica il tema alla finestra e a tutti i controlli contenuti.</summary>
+        public static void Apply(Form f, Button primary = null)
+        {
+            f.Font = Base;
+            if (f.BackColor == SystemColors.Control) f.BackColor = Surface;
+            f.ForeColor = Ink;
+            ApplyTo(f.Controls, primary ?? f.AcceptButton as Button);
+        }
+
+        private static void ApplyTo(Control.ControlCollection controls, Button primary)
+        {
+            foreach (Control c in controls)
+            {
+                var b = c as Button;
+                if (b != null && b.BackColor == SystemColors.Control || b != null && b.UseVisualStyleBackColor)
+                    StyleButton(b, ReferenceEquals(b, primary));
+                else if (c is Panel || c is TableLayoutPanel || c is FlowLayoutPanel)
+                {
+                    // sfondo pieno, mai trasparente: i TrackBar su sfondo trasparente entrano in un ciclo di
+                    // ridisegno continuo che blocca la finestra e rallenta tutta l'interfaccia di Revit
+                    if (c.BackColor == SystemColors.Control || c.BackColor == Color.Transparent) c.BackColor = Surface;
+                }
+                else if (c is TrackBar)
+                {
+                    c.BackColor = Surface;
+                }
+                else if (c is TextBox || c is NumericUpDown || c is ComboBox)
+                {
+                    if (c is ComboBox) ((ComboBox)c).FlatStyle = FlatStyle.Flat;
+                }
+                else if (c is Label && c.ForeColor == SystemColors.GrayText)
+                {
+                    c.ForeColor = Muted;
+                }
+
+                if (c.HasChildren) ApplyTo(c.Controls, primary);
+            }
+        }
+
+        public static void StyleButton(Button b, bool primary)
+        {
+            b.FlatStyle = FlatStyle.Flat;
+            b.UseVisualStyleBackColor = false;
+            b.FlatAppearance.BorderSize = 1;
+            b.Cursor = Cursors.Hand;
+            if (b.AutoSize) b.Padding = new Padding(8, 1, 8, 1);
+            if (primary)
+            {
+                b.BackColor = Accent;
+                b.ForeColor = Color.White;
+                b.FlatAppearance.BorderColor = Accent;
+                b.FlatAppearance.MouseOverBackColor = AccentHover;
+                b.FlatAppearance.MouseDownBackColor = AccentHover;
+            }
+            else
+            {
+                b.BackColor = Surface;
+                b.ForeColor = Ink;
+                b.FlatAppearance.BorderColor = Border;
+                b.FlatAppearance.MouseOverBackColor = Hover;
+                b.FlatAppearance.MouseDownBackColor = Hover;
+            }
+        }
+
+        /// <summary>Etichetta di sezione (titoletto) usata nelle finestre con più gruppi di opzioni.</summary>
+        public static Label Section(string text)
+        {
+            return new Label
+            {
+                Text = text,
+                AutoSize = true,
+                Font = new Font("Segoe UI Semibold", 9.5f),
+                ForeColor = Ink,
+                Margin = new Padding(0, 10, 0, 4)
+            };
+        }
+    }
+
+    /// <summary>
+    /// Base delle finestre del plugin: si mostrano solo quando sono già disegnate per intero. Prima comparivano la
+    /// cornice vuota e poi i contenuti uno alla volta (stile applicato dopo la creazione, elenchi disegnati riga per
+    /// riga). Doppio buffer per tutta la finestra (WS_EX_COMPOSITED) (disegno fuori schermo, poi una sola copia).
+    /// </summary>
+    internal class MpForm : Form
+    {
+        private const int WS_EX_COMPOSITED = 0x02000000;
+
+        public MpForm()
+        {
+            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.ExStyle |= WS_EX_COMPOSITED;
+                return cp;
+            }
+        }
+
+        // Prima comparsa: la finestra si apre fuori dallo schermo, si disegna per intero e solo allora si sposta al
+        // suo posto. Su Windows 11 altrimenti compariva prima la cornice vuota (trasparente) e poi i contenuti.
+        // (La trasparenza fino al primo disegno non funzionava: Windows mostra comunque cornice e ombra.)
+        private Point? _target;
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e); // qui Windows Forms ha già calcolato la posizione (anche «al centro della finestra madre»)
+            if (WindowState == FormWindowState.Normal && _target == null)
+            {
+                _target = Location;
+                Location = new Point(-32000, -32000);
+            }
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            if (_target == null) return;
+            try { Refresh(); } catch { }
+            Location = _target.Value;
+            _target = Point.Empty; // non nullo: la prossima volta (finestra nascosta e rimostrata) non si ripete
+        }
+    }
+}

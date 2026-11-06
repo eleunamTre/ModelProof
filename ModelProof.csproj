@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Una configurazione per ogni versione di Revit, stesso codice:
+      R24 = Revit 2024 (.NET Framework 4.8)
+      R25 = Revit 2025, R26 = Revit 2026 (.NET 8)
+      R27 = Revit 2027 (.NET 10: serve l'SDK di .NET 10)
+    Si sceglie la configurazione dalla barra di Visual Studio; la compilazione copia DLL e manifest nella cartella
+    Addins della versione giusta (chiudere quella versione di Revit prima di compilare).
+  -->
+  <PropertyGroup>
+    <Configurations>R24;R25;R26;R27</Configurations>
+    <Configuration Condition="'$(Configuration)' == ''">R24</Configuration>
+    <LangVersion>latest</LangVersion>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AssemblyName>ModelProof</AssemblyName>
+    <RootNamespace>ModelProof</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Version>0.1.0</Version>
+    <DebugType>portable</DebugType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <!-- avvisi della piattaforma Windows (CA1416) inutili: il plugin gira solo su Windows -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'R24'">
+    <RevitVersion>2024</RevitVersion>
+    <TargetFramework>net48</TargetFramework>
+    <DefineConstants>$(DefineConstants);TRACE;REVIT2024</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'R25'">
+    <RevitVersion>2025</RevitVersion>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <DefineConstants>$(DefineConstants);TRACE;REVIT2025;REVIT2025_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'R26'">
+    <RevitVersion>2026</RevitVersion>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <DefineConstants>$(DefineConstants);TRACE;REVIT2026;REVIT2025_OR_GREATER;REVIT2026_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'R27'">
+    <RevitVersion>2027</RevitVersion>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <DefineConstants>$(DefineConstants);TRACE;REVIT2027;REVIT2025_OR_GREATER;REVIT2026_OR_GREATER;REVIT2027_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+
+  <!-- WPF serve solo per le icone della barra multifunzione (BitmapImage) -->
+  <PropertyGroup Condition="'$(TargetFramework)' != 'net48'">
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Runtime.Serialization" />
+  </ItemGroup>
+
+  <!-- API di Revit della versione scelta, da NuGet: non servono le versioni installate per compilare -->
+  <ItemGroup>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitVersion).*" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitVersion).*" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Icone della barra multifunzione, incorporate nella DLL -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*.png">
+      <LogicalName>ModelProof.Resources.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <None Include="ModelProof.addin" />
+  </ItemGroup>
+
+  <!-- Copia DLL e manifest nella cartella Addins della versione di Revit scelta -->
+  <Target Name="DeployToRevit" AfterTargets="Build">
+    <PropertyGroup>
+      <AddinsDir>$(AppData)\Autodesk\Revit\Addins\$(RevitVersion)\</AddinsDir>
+    </PropertyGroup>
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(AddinsDir)ModelProof\" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(AddinsDir)ModelProof\" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\ModelProof.addin" DestinationFolder="$(AddinsDir)" />
+  </Target>
+
+</Project>

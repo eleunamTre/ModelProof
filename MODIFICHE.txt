@@ -2,3 +2,23 @@ ModelProof – registro delle modifiche
 =====================================
 
 1. Creazione della repository: .gitignore, registro delle modifiche e roadmap.
+
+2. Struttura del progetto per Revit 2024, 2025, 2026 e 2027: un solo progetto con le configurazioni R24 (.NET
+   Framework 4.8), R25 e R26 (.NET 8), R27 (.NET 10). Le API di Revit arrivano da NuGet (pacchetti Nice3point per
+   versione), quindi si compila anche senza quella versione installata. La compilazione copia DLL e manifest in
+   %APPDATA%\Autodesk\Revit\Addins\<versione>. Scheda «ModelProof» nella barra multifunzione, registro
+   %LOCALAPPDATA%\ModelProof\ModelProof.log, impostazioni del computer in settings.json, testi in italiano con
+   traduzione inglese (L.T, Strings.en.cs), aspetto delle finestre come in PointDeviation.
+
+3. File di configurazione del progetto (testo UTF-8 che resta sul computer: nella repository non c'è nessun dato del
+   progetto). Lettura di sezioni, valori «chiave = valore» anche su più righe, elenchi con colonne separate da TAB
+   (incollati da Excel) o «;», commenti con «#». Segnaposto descritti a parole («3 cifre», «elenco CATEGORIE»,
+   «1 carattere: cifra o X», «numero progressivo», «campi separati da "_"», «testo libero senza "."», composizioni
+   {A}_{B}, alternative con «oppure») e trasformati in espressioni regolari; formati delle regole con segnaposto e
+   parti facoltative tra [ ]. Controllo del file: segnaposto e formati non validi, modelli e gravità sconosciuti,
+   regole citate dalla checklist che non esistono, rimandi a righe mancanti, codici ripetuti negli elenchi, esempi
+   «prova_si»/«prova_no» che il formato accetta o rifiuta al contrario.
+
+4. Pulsante «Regole del progetto»: sceglie il file di configurazione (ricordato per le volte successive), lo controlla
+   e mostra errori, avvisi, regole, collegamento alla checklist ed elenchi; «Prova una regola» dice se un valore
+   rispetta il formato e quali parti ha riconosciuto. Pulsante «Registro»: apre la cartella del registro.
