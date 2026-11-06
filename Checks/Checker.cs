@@ -74,6 +74,7 @@ namespace ModelProof
             if (fRole >= 1 && fRole <= fields.Length)
             {
                 string code = fields[fRole - 1].Trim();
+                info.RoleCode = code;
                 foreach (string role in ProjectConfig.Roles)
                     if (string.Equals(s.Get(role + ".codice"), code, StringComparison.OrdinalIgnoreCase)) { info.Role = role; break; }
             }
@@ -81,6 +82,13 @@ namespace ModelProof
             {
                 string expected = s.Get(info.Role + ".descrizione");
                 info.DescriptionOk = expected.Length == 0 || string.Equals(expected, info.Description, StringComparison.OrdinalIgnoreCase);
+            }
+            // ruolo secondo la descrizione: il nome (con «_» letti come spazi) finisce con la descrizione di un ruolo
+            string spaced = " " + string.Join(" ", fileName.Replace('_', ' ').Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
+            foreach (string role in ProjectConfig.Roles)
+            {
+                string d = string.Join(" ", s.Get(role + ".descrizione").Split(new[] { ' ', '_' }, StringSplitOptions.RemoveEmptyEntries));
+                if (d.Length > 0 && spaced.EndsWith(" " + d, StringComparison.OrdinalIgnoreCase)) { info.DescriptionRole = role; break; }
             }
             return info;
         }
@@ -192,7 +200,10 @@ namespace ModelProof
                     if (!seen.Add(name)) continue;
                     var lm = new LinkedModel { Instance = li, Doc = ld, Info = Identify(name, _cfg) };
                     _links.Add(lm);
-                    described.Add(lm.Info.Role != null ? name + " (" + lm.Info.Role + ")" : L.F("{0} (ruolo non riconosciuto)", name));
+                    string roles = lm.Info.Role ?? L.T("ruolo non riconosciuto");
+                    if (lm.Info.DescriptionRole != null && lm.Info.DescriptionRole != lm.Info.Role)
+                        roles += L.F("; dalla descrizione: {0}", lm.Info.DescriptionRole);
+                    described.Add(name + " (" + roles + ")");
                 }
                 catch { }
             }
@@ -202,7 +213,10 @@ namespace ModelProof
         private LinkedModel Reference(Rule rule)
         {
             string role = rule.Reference.Length > 0 ? rule.Reference : "URS";
-            return _links.FirstOrDefault(l => l.Info.Role == role);
+            // prima dal codice nel nome; se nessun collegamento ha quel codice, dalla descrizione (il nome sbagliato lo
+            // segnala il controllo «nome file», ma intanto i confronti si possono fare)
+            return _links.FirstOrDefault(l => l.Info.Role == role)
+                ?? _links.FirstOrDefault(l => l.Info.DescriptionRole == role && !_links.Any(o => o != l && o.Info.Role == role));
         }
 
         // ================================================================== regole di campi
@@ -573,6 +587,7 @@ namespace ModelProof
         {
             switch (rule.Control)
             {
+                case "nome file": CheckFileNames(rule, rr); break;
                 case "stesso edificio": CheckSameBuilding(rule, rr); break;
                 case "coordinate": CheckCoordinates(rule, rr); break;
                 case "livelli uguali al riferimento": CheckLevelsAsReference(rule, rr); break;
@@ -592,6 +607,38 @@ namespace ModelProof
                 i.FamilyType = e.Name ?? "";
             }
             return i;
+        }
+
+        /// <summary>
+        /// Nome di questo file e dei collegamenti: codice del modello riconosciuto, coerente con la descrizione finale,
+        /// un solo modello per ruolo.
+        /// </summary>
+        private void CheckFileNames(Rule rule, RuleResult rr)
+        {
+            bool error = rule.Severity == "errore";
+            var all = new List<ModelInfo> { _info };
+            all.AddRange(_links.Select(l => l.Info));
+            foreach (ModelInfo m in all)
+            {
+                rr.Checked++;
+                string who = m == _info ? L.T("questo modello") : L.T("collegamento");
+                if (m.Role == null)
+                {
+                    string guess = m.DescriptionRole != null ? L.F(" (dalla descrizione sembra {0})", m.DescriptionRole) : "";
+                    rr.Issues.Add(ControlIssue(rule, error, who, m.FileName, L.F("codice del modello «{0}» non riconosciuto{1}", m.RoleCode, guess)));
+                }
+                else if (m.DescriptionRole != null && m.DescriptionRole != m.Role)
+                    rr.Issues.Add(ControlIssue(rule, error, who, m.FileName,
+                        L.F("nome sbagliato: il codice «{0}» indica {1}, ma la descrizione indica {2}", m.RoleCode, m.Role, m.DescriptionRole)));
+                else if (m.DescriptionRole == null)
+                    rr.Issues.Add(ControlIssue(rule, false, who, m.FileName,
+                        L.F("descrizione «{0}» diversa da quella attesa per {1}", m.Description, m.Role)));
+                else if (!m.DescriptionOk)
+                    rr.Issues.Add(ControlIssue(rule, false, who, m.FileName, L.T("nella descrizione c'è «_» al posto dello spazio")));
+            }
+            foreach (var g in all.Where(m => m.Role != null).GroupBy(m => m.Role).Where(g => g.Count() > 1))
+                rr.Issues.Add(ControlIssue(rule, error, L.T("nome file"), string.Join("; ", g.Select(m => m.FileName)),
+                    L.F("{0} modelli riconosciuti come {1}: almeno un nome è sbagliato", g.Count(), g.Key)));
         }
 
         private void CheckSameBuilding(Rule rule, RuleResult rr)

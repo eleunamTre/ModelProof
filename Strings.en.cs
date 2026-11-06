@@ -177,7 +177,6 @@ namespace ModelProof
             d["«{0}» non compilato"] = "«{0}» not filled in";
             d["«{0}» è «{1}»: dovrebbe essere uguale"] = "«{0}» is «{1}»: it should be the same";
             d["{0} (non caricato)"] = "{0} (not loaded)";
-            d["{0} (ruolo non riconosciuto)"] = "{0} (role not recognized)";
             d["Collegamenti: {0}."] = "Links: {0}.";
             d["Nessun modello Revit collegato."] = "No linked Revit model.";
             d["«se_assente» deve essere errore, avviso o ignora"] = "«se_assente» must be errore, avviso or ignora";
@@ -204,6 +203,16 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["ruolo non riconosciuto"] = "role not recognized";
+            d["; dalla descrizione: {0}"] = "; from the description: {0}";
+            d["questo modello"] = "this model";
+            d["collegamento"] = "link";
+            d[" (dalla descrizione sembra {0})"] = " (the description suggests {0})";
+            d["codice del modello «{0}» non riconosciuto{1}"] = "model code «{0}» not recognized{1}";
+            d["nome sbagliato: il codice «{0}» indica {1}, ma la descrizione indica {2}"] = "wrong name: code «{0}» indicates {1}, but the description indicates {2}";
+            d["descrizione «{0}» diversa da quella attesa per {1}"] = "description «{0}» differs from the one expected for {1}";
+            d["nella descrizione c'è «_» al posto dello spazio"] = "the description has «_» instead of a space";
+            d["{0} modelli riconosciuti come {1}: almeno un nome è sbagliato"] = "{0} models recognized as {1}: at least one name is wrong";
             d["«{0}» non è nell'elenco {1}"] = "«{0}» is not in list {1}";
             d["Struttura giusta, ma {0}"] = "Correct structure, but {0}";
             d["isola elementi"] = "isolate elements";

@@ -231,7 +231,7 @@ namespace ModelProof
         /// <summary>Controlli già pronti nel plugin (valore di «controllo»).</summary>
         public static readonly string[] Controls =
         {
-            "stesso edificio", "coordinate", "livelli uguali al riferimento", "copy monitor livelli",
+            "nome file", "stesso edificio", "coordinate", "livelli uguali al riferimento", "copy monitor livelli",
             "parametri condivisi", "codice categoria", "funzione ammessa", "categoria ammessa", "funzione muri"
         };
 

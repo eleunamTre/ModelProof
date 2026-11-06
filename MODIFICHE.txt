@@ -85,3 +85,12 @@ ModelProof – registro delle modifiche
    - coerenza: nuova forma «(avviso se PARTE = "testo")», solo avviso quando quella parte del valore è il testo
      indicato (es. una zona particolare in cui gli elementi stanno sul livello della loro quota);
    - la prova di una regola nella finestra di configurazione mostra anche «Struttura giusta, ma …».
+
+11. Controllo dei nomi dei file:
+   - nuovo controllo pronto «nome file»: per il file aperto e per ogni collegamento confronta il codice del modello
+     (campo «campo_ruolo») con la descrizione in fondo al nome (chiavi «<ruolo>.descrizione», con «_» letti come
+     spazi). Errore se il codice non è riconosciuto, se codice e descrizione indicano modelli diversi o se più
+     modelli hanno lo stesso ruolo; avviso se la descrizione è diversa da quella attesa o ha «_» al posto dello spazio;
+   - le note sui collegamenti mostrano anche il ruolo letto dalla descrizione quando è diverso;
+   - se nessun collegamento ha il codice del modello di riferimento, si usa quello che la descrizione indica come
+     riferimento, così coordinate e livelli si confrontano lo stesso (il nome sbagliato resta segnalato).

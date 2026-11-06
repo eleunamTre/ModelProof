@@ -57,6 +57,8 @@ namespace ModelProof
         public string Building;        // codice edificio dal nome file (null se manca)
         public string Description = "";
         public bool DescriptionOk = true;
+        public string DescriptionRole; // ruolo indicato dalla descrizione in fondo al nome (con «_» o spazi), null se nessuno
+        public string RoleCode = "";   // campo del ruolo così com'è nel nome
 
         public string RoleText { get { return Role ?? "?"; } }
     }
