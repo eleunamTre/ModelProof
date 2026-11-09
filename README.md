@@ -1,10 +1,7 @@
 # ModelProof
 
-Plugin per Autodesk Revit che verifica i modelli BIM: controlli generali del modello e regole informative
-(codifiche, parametri obbligatori, formati) descritte in un file di configurazione del progetto.
-
-Il file di configurazione resta sul computer di chi lavora: nella repository ci sono solo il programma e la
-descrizione del formato, nessun dato di progetto.
+Plugin per Autodesk Revit per automatizzazione dei controlli sui modelli BIM: controlli generali del modello e regole informative
+(codifiche, parametri obbligatori, formati) secondo quanto descritto in un file di configurazione per il progetto in locale.
 
 ## Versioni di Revit
 
@@ -15,9 +12,9 @@ descrizione del formato, nessun dato di progetto.
 | R26 | 2026 | .NET 8 |
 | R27 | 2027 | .NET 10 (serve l'SDK di .NET 10) |
 
-Si sceglie la configurazione in Visual Studio e si compila: DLL e manifest vengono copiati in
+Scegliere la configurazione in Visual Studio e compilare: DLL e manifest vengono copiati in
 `%APPDATA%\Autodesk\Revit\Addins\<versione>` (chiudere quella versione di Revit prima di compilare, poi riavviarla).
-Le API di Revit arrivano da NuGet, quindi non serve avere installata la versione per cui si compila.
+Le API di Revit arrivano da NuGet, non serve avere installata la versione per cui si compila.
 
 ## Registro
 
