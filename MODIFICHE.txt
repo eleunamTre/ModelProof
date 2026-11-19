@@ -157,3 +157,10 @@ ModelProof – registro delle modifiche
      ordine numerico), secondo clic ordine inverso; la freccia nell'intestazione mostra la colonna e il verso;
    - l'ordine vale dentro ogni livello (errori, non in elenco, avvisi, OK) e dentro ogni regola, e si applica a tutte
      le anomalie prima del limite di righe mostrate.
+
+18. Interroga collegamento:
+   - nuovo pannello «Strumenti» con il comando «Interroga collegamento»: si cliccano uno o più elementi dei modelli
+     collegati (Esc per finire) e una finestra mostra per ciascuno ID, UniqueId, file del collegamento, categoria,
+     famiglia e tipo, livello e tutti i parametri di istanza e di tipo, senza aprire il modello originale;
+   - «Copia ID» copia gli ID separati da virgola (da incollare in «Select by ID» nel file originale), «Copia tutto»
+     copia le righe come tabella; sola lettura, il modello non viene modificato.

@@ -154,5 +154,4 @@ namespace ModelProof
             catch (Exception ex) { Log.Error("Copia", ex); }
         }
     }
-    }
 }
