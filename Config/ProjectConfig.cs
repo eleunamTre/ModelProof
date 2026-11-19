@@ -48,7 +48,7 @@ namespace ModelProof
     internal sealed class Coherence
     {
         public string Group;           // parte del valore controllato, es. CAT
-        public string Source;          // nome, nome tipo, nome famiglia, type mark, livello, file (null se testo fisso)
+        public string Source;          // nome, nome tipo, nome famiglia, type mark, livello, locale, file (null se testo fisso)
         public string SourceGroup;     // parte della fonte, es. CAT
         public string Literal;         // testo fisso atteso (se Source è null)
         public bool Warning;           // «(avviso)»: segnalato come avviso anche se la regola è un errore
@@ -99,6 +99,7 @@ namespace ModelProof
         public List<string> EmptyValues = new List<string>();
         public List<string> ValidValues = new List<string>();
         public string Reference;       // modello di riferimento (es. URS)
+        public string ListName = "";   // elenco usato da un controllo pronto («elenco = NOME»)
         public double ToleranceMm = 1;
         public double ToleranceDeg = 0.001;
 
@@ -235,6 +236,9 @@ namespace ModelProof
             "parametri condivisi", "codice categoria", "funzione ammessa", "categoria ammessa", "funzione muri"
         };
 
+        /// <summary>Controlli pronti che leggono un elenco del file (chiave «elenco»).</summary>
+        public static readonly string[] ControlsWithList = { "parametri condivisi", "codice categoria", "funzione ammessa", "categoria ammessa" };
+
         /// <summary>Oggetti controllabili con le regole di campi (valore di «oggetto»).</summary>
         public static readonly string[] Objects =
         {
@@ -243,7 +247,7 @@ namespace ModelProof
         };
 
         /// <summary>Fonti ammesse nella coerenza.</summary>
-        public static readonly string[] Sources = { "nome", "nome tipo", "nome famiglia", "type mark", "livello", "file" };
+        public static readonly string[] Sources = { "nome", "nome tipo", "nome famiglia", "type mark", "livello", "locale", "file" };
 
         private static readonly Regex RxCoherence = new Regex("^(\\w+)\\s*=\\s*(?:\"([^\"]*)\"|([^.]+?)\\.(\\w+))\\s*(?:\\(avviso(?:\\s+se\\s+(\\w+)\\s*=\\s*\"([^\"]*)\")?\\))?$", RegexOptions.CultureInvariant);
         private static readonly Regex RxNumbering = new Regex(@"^(\w+)(?:\s+per\s+(.+))?$", RegexOptions.CultureInvariant);
@@ -284,6 +288,23 @@ namespace ModelProof
                 foreach (string v in SplitList(s.Get("valori_validi"), ';')) r.ValidValues.Add(Unquote(v));
                 r.ToleranceMm = ReadNumber(s, "tolleranza_mm", r.ToleranceMm, where);
                 r.ToleranceDeg = ReadNumber(s, "tolleranza_gradi", r.ToleranceDeg, where);
+                r.ListName = s.Get("elenco").Trim();
+                if (r.ListName.Length > 0)
+                {
+                    CodeList used;
+                    if (!Lists.TryGetValue(r.ListName, out used))
+                        Add(IssueLevel.Errore, s.Find("elenco").Line, where, L.F("elenco [{0}] non trovato", r.ListName));
+                    else
+                    {
+                        used.Referenced = true;
+                        // codice ripetuto = stessa chiave: per gli elenchi di funzioni la chiave è codice + funzione
+                        int kc;
+                        if (int.TryParse(s.Get("colonna_funzione", r.Control == "funzione ammessa" ? "2" : "0").Trim(), out kc))
+                            used.KeyColumns = Math.Max(used.KeyColumns, kc);
+                    }
+                }
+                else if (r.Control != null && ControlsWithList.Contains(r.Control))
+                    Add(IssueLevel.Errore, s.Line, where, L.F("il controllo «{0}» ha bisogno di «elenco = NOME»", r.Control));
                 Rules.Add(r);
 
                 if (r.Models.Count == 0) Add(IssueLevel.Errore, s.Line, where, L.T("manca «modelli»"));
@@ -453,6 +474,11 @@ namespace ModelProof
                     break;
                 case "livello":
                     AddParser(list, "livelli", "Nome");
+                    break;
+                case "locale":
+                    // locale che contiene l'elemento: si legge con le regole con formato sui locali
+                    foreach (Rule r in Rules)
+                        if (r.Object == "locali" && r.Regex != null && r.Fields.Count > 0) list.Add(r);
                     break;
             }
             return list;

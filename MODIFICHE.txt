@@ -133,3 +133,21 @@ ModelProof – registro delle modifiche
    - tolto il «nord di progetto» del Project Base Point aggiunto in 14: non è un dato del modello ma solo
      l'orientamento delle viste, il controllo resta sul nord reale;
    - CSV ed Excel restano senza righe OK (solo anomalie); il foglio «Coordinate» resta con tutti i valori.
+
+16. Controlli pronti sugli elenchi e numero del locale:
+   - nuova chiave delle regole «elenco = NOME» (obbligatoria per i controlli che leggono un elenco) e chiavi
+     «colonna_codice», «colonna_categoria», «colonna_discipline», «colonna_funzione», «parte_categoria»,
+     «parte_funzione»: il codice non conosce nomi di elenchi o di parti del progetto;
+   - «parametri condivisi»: ogni parametro dell'elenco presente come parametro condiviso (OK), presente solo come
+     parametro di progetto non condiviso (errore), assente (secondo «se_assente»), con nomi doppi (avviso);
+     parametri condivisi assegnati alle categorie ma non in elenco (avviso);
+   - «codice categoria»: il codice di categoria nel nome della famiglia (caricabili) o del tipo (sistema) deve
+     corrispondere alla categoria Revit indicata nell'elenco;
+   - «funzione ammessa»: la funzione nel nome deve essere tra quelle dell'elenco per quel codice di categoria
+     (codice senza funzioni in elenco = funzione libera);
+   - «categoria ammessa»: la categoria di ogni tipo usato deve essere ammessa per le discipline del modello
+     («<ruolo>.discipline» in [MODELLI]); categoria non in elenco = avviso;
+   - «funzione muri»: con le funzioni del nome indicate in «esterne» e «interne», la Function del tipo deve essere
+     Exterior o Interior (errore, una volta per tipo) e i locali ai due lati del muro devono concordare (avviso);
+   - nuova fonte della coerenza «locale»: il locale che contiene l'elemento (porte e finestre: uno dei due locali),
+     letto con le regole con formato sui locali. Elementi fuori dai locali: non confrontati.

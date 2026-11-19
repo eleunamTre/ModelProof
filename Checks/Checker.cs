@@ -36,7 +36,7 @@ namespace ModelProof
     /// Le regole di campi sono generiche (oggetto + campo + formato + coerenza + numerazione); i «controlli» sono
     /// scritti qui (coordinate, livelli, …).
     /// </summary>
-    internal sealed class Checker
+    internal sealed partial class Checker
     {
         private readonly Document _doc;
         private readonly ProjectConfig _cfg;
@@ -320,6 +320,7 @@ namespace ModelProof
                 }
                 List<string> expected = SourceValues(c, rule, t);
                 if (expected.Count == 0) continue;   // fonte non leggibile: niente confronto
+                if (c.Source == "locale" && expected.Contains(actual)) continue;   // porte e finestre: basta uno dei due locali
                 var different = expected.Where(e => e != actual).Distinct().ToList();
                 if (different.Count == 0) continue;
                 string src = c.Source == "livello" && t.Levels != null ? L.T("livelli degli elementi") : c.Source;
@@ -544,6 +545,14 @@ namespace ModelProof
                     if (RevitUtil.IsLoadable(t.Type)) AddGroup(values, _cfg.FindParser("famiglie caricabili", "Nome famiglia"), FamilyNameOf(t.Type), c.SourceGroup);
                     break;
 
+                case "locale":
+                    {
+                        foreach (Room room in RoomsOf(t.El))
+                            foreach (Rule parser in _cfg.ParsersFor("locale", rule.Object))
+                                AddGroup(values, parser, RevitUtil.ValueOf(RevitUtil.FindParameter(room, parser.Fields[0]), _doc), c.SourceGroup);
+                    }
+                    break;
+
                 case "type mark":
                     if (t.Type != null)
                     {
@@ -598,6 +607,11 @@ namespace ModelProof
                 case "coordinate": CheckCoordinates(rule, rr); break;
                 case "livelli uguali al riferimento": CheckLevelsAsReference(rule, rr); break;
                 case "copy monitor livelli": CheckCopyMonitor(rule, rr); break;
+                case "parametri condivisi": CheckSharedParameters(rule, rr); break;
+                case "codice categoria": CheckCategoryCode(rule, rr); break;
+                case "funzione ammessa": CheckAllowedFunction(rule, rr); break;
+                case "categoria ammessa": CheckAllowedCategory(rule, rr); break;
+                case "funzione muri": CheckWallFunction(rule, rr); break;
                 default: rr.Note = L.T("controllo non ancora disponibile in questa versione del plugin"); break;
             }
         }
