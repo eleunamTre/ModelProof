@@ -44,7 +44,7 @@ namespace ModelProof
 
             RibbonPanel pTools = app.CreateRibbonPanel(tabName, L.T("Strumenti"));
             pTools.AddItem(Push("LinkQuery", "Interroga\ncollegamento", asm, typeof(LinkQueryCommand), "pick",
-                "Clicca uno o più elementi dei modelli collegati (Esc per finire): mostra ID, file, categoria, famiglia e tipo, livello e tutti i parametri, senza aprire il modello originale. Gli ID si copiano per «Select by ID» nel file originale.",
+                "Apre una finestra da cui scegliere in Revit uno o più elementi dei modelli collegati: mostra ID, file, categoria, famiglia e tipo, livello e tutti i parametri, senza aprire il modello originale. Gli ID si copiano (doppio clic, Ctrl+C o clic destro) per «Select by ID» nel file originale.",
                 typeof(ProjectAvailability)));
 
             RibbonPanel pConfig = app.CreateRibbonPanel(tabName, L.T("Configurazione"));

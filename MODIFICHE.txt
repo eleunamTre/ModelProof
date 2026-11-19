@@ -164,3 +164,11 @@ ModelProof – registro delle modifiche
      famiglia e tipo, livello e tutti i parametri di istanza e di tipo, senza aprire il modello originale;
    - «Copia ID» copia gli ID separati da virgola (da incollare in «Select by ID» nel file originale), «Copia tutto»
      copia le righe come tabella; sola lettura, il modello non viene modificato.
+
+19. Interroga collegamento, finestra prima della scelta:
+   - il comando apre subito una finestra che resta aperta accanto a Revit (chiudendola si nasconde e l'elenco resta);
+     «Scegli elementi…» passa a Revit, dove si scelgono quanti elementi dei collegamenti si vuole (clic o riquadro) e
+     si conclude con «Fine»; gli elementi si aggiungono all'elenco senza doppioni. «Svuota» e «Togli dall'elenco»;
+   - copia: doppio clic su una riga o Ctrl+C copiano gli ID delle righe selezionate (separati da virgola, per «Select
+     by ID»); clic destro: copia ID, righe o UniqueId; nei parametri Ctrl+C o clic destro copiano valore o parametro e
+     valore.

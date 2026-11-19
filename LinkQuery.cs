@@ -9,39 +9,21 @@ using Autodesk.Revit.UI.Selection;
 namespace ModelProof
 {
     /// <summary>
-    /// Interroga elementi dei modelli collegati senza aprirli: si cliccano uno o più elementi dei collegamenti
-    /// (Esc per finire) e una finestra mostra file, ID, categoria, famiglia/tipo, livello e tutti i parametri,
-    /// con la copia degli ID. Sola lettura.
+    /// Apre la finestra «Interroga collegamento» (resta aperta accanto a Revit). Dalla finestra si scelgono gli elementi
+    /// dei modelli collegati, anche molti insieme; per ciascuno si vedono ID, file, categoria, famiglia/tipo, livello
+    /// e parametri, e gli ID si copiano. Sola lettura.
     /// </summary>
     [Transaction(TransactionMode.ReadOnly)]
     public class LinkQueryCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            UIDocument uidoc = commandData.Application.ActiveUIDocument;
-            if (uidoc == null) return Result.Cancelled;
-            Document doc = uidoc.Document;
-            var picks = new List<LinkedPick>();
             try
             {
-                while (true)
-                {
-                    Reference r;
-                    try
-                    {
-                        r = uidoc.Selection.PickObject(ObjectType.LinkedElement,
-                            L.F("Clicca un elemento di un modello collegato ({0} scelti) – Esc per finire", picks.Count));
-                    }
-                    catch (Autodesk.Revit.Exceptions.OperationCanceledException) { break; }
-                    LinkedPick p = Describe(doc, r);
-                    if (p != null && !picks.Any(x => x.LinkInstanceId == p.LinkInstanceId && x.Id == p.Id)) picks.Add(p);
-                }
-                if (picks.Count == 0) return Result.Cancelled;
-                Log.Write("Collegamenti", string.Format("interrogati {0} elementi: {1}", picks.Count,
-                    string.Join(", ", picks.Select(p => p.LinkFile + " #" + p.Id))));
+                LinkPickHandler.Init();
                 IntPtr owner = IntPtr.Zero;
                 try { owner = commandData.Application.MainWindowHandle; } catch { }
-                LinkQueryForm.ShowPicks(picks, owner);
+                LinkQueryForm.Open(owner);
                 return Result.Succeeded;
             }
             catch (Exception ex)
@@ -50,6 +32,53 @@ namespace ModelProof
                 message = ex.Message;
                 return Result.Failed;
             }
+        }
+    }
+
+    /// <summary>
+    /// Scelta degli elementi dei collegamenti chiesta dalla finestra: in Revit si cliccano o si racchiudono in un
+    /// riquadro quanti elementi si vuole e si conclude con «Fine» (o Invio); Esc annulla.
+    /// </summary>
+    internal sealed class LinkPickHandler : IExternalEventHandler
+    {
+        private static LinkPickHandler _instance;
+        private static ExternalEvent _event;
+
+        /// <summary>Da chiamare dentro un comando (contesto dell'API).</summary>
+        public static void Init()
+        {
+            if (_event != null) return;
+            _instance = new LinkPickHandler();
+            _event = ExternalEvent.Create(_instance);
+            LinkQueryForm.PickRequested = () => _event.Raise();
+        }
+
+        public string GetName() { return "ModelProof – interroga collegamento"; }
+
+        public void Execute(UIApplication app)
+        {
+            try
+            {
+                UIDocument uidoc = app.ActiveUIDocument;
+                if (uidoc == null) return;
+                IList<Reference> refs;
+                try
+                {
+                    refs = uidoc.Selection.PickObjects(ObjectType.LinkedElement,
+                        L.T("Scegli gli elementi dei modelli collegati (clic o riquadro), poi «Fine» – Esc per annullare"));
+                }
+                catch (Autodesk.Revit.Exceptions.OperationCanceledException) { return; }
+                var picks = new List<LinkedPick>();
+                foreach (Reference r in refs)
+                {
+                    LinkedPick p = Describe(uidoc.Document, r);
+                    if (p != null) picks.Add(p);
+                }
+                Log.Write("Collegamenti", string.Format("interrogati {0} elementi: {1}", picks.Count,
+                    string.Join(", ", picks.Take(50).Select(p => p.LinkFile + " #" + p.Id))));
+                LinkQueryForm.AddPicks(picks);
+            }
+            catch (Exception ex) { Log.Error("Interroga collegamento", ex); }
         }
 
         private static LinkedPick Describe(Document doc, Reference r)
