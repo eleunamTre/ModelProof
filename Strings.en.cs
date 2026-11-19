@@ -196,6 +196,17 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["Strumenti"] = "Tools";
+            d["Interroga\ncollegamento"] = "Query\nlink";
+            d["Clicca uno o più elementi dei modelli collegati (Esc per finire): mostra ID, file, categoria, famiglia e tipo, livello e tutti i parametri, senza aprire il modello originale. Gli ID si copiano per «Select by ID» nel file originale."] = "Click one or more elements of linked models (Esc to finish): shows ID, file, category, family and type, level and all parameters, without opening the original model. The IDs can be copied for «Select by ID» in the original file.";
+            d["Clicca un elemento di un modello collegato ({0} scelti) – Esc per finire"] = "Click an element of a linked model ({0} picked) – Esc to finish";
+            d["istanza"] = "instance";
+            d["tipo"] = "type";
+            d["Elementi dei collegamenti ({0})"] = "Linked elements ({0})";
+            d["Livello"] = "Level";
+            d["Copia tutto"] = "Copy all";
+            d["Copia ID"] = "Copy IDs";
+            d["Parametri di {0}"] = "Parameters of {0}";
             d["Locali ai lati"] = "Rooms on the sides";
             d["Parametro"] = "Parameter";
             d["categoria non ammessa per il modello {0} ({1}): ammessa per {2}"] = "category not allowed for model {0} ({1}): allowed for {2}";

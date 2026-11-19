@@ -42,6 +42,11 @@ namespace ModelProof
                 "Riapre i risultati dell'ultima verifica del progetto attivo, senza rifarla.",
                 typeof(ProjectAvailability)));
 
+            RibbonPanel pTools = app.CreateRibbonPanel(tabName, L.T("Strumenti"));
+            pTools.AddItem(Push("LinkQuery", "Interroga\ncollegamento", asm, typeof(LinkQueryCommand), "pick",
+                "Clicca uno o più elementi dei modelli collegati (Esc per finire): mostra ID, file, categoria, famiglia e tipo, livello e tutti i parametri, senza aprire il modello originale. Gli ID si copiano per «Select by ID» nel file originale.",
+                typeof(ProjectAvailability)));
+
             RibbonPanel pConfig = app.CreateRibbonPanel(tabName, L.T("Configurazione"));
             pConfig.AddItem(Push("Config", "Regole del\nprogetto", asm, typeof(ConfigCommand), "config",
                 "Sceglie il file di configurazione del progetto (regole, codifiche, elenchi, collegamento alla checklist), lo controlla e permette di provare un valore con una regola.",
