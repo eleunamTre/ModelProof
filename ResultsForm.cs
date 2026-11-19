@@ -34,6 +34,9 @@ namespace ModelProof
         private bool _shown;
         private bool _splitSet;
         private bool _filling;
+        private int _sortColumn = -1;          // colonna delle anomalie su cui si ordina (-1 = ordine della verifica)
+        private bool _sortAscending = true;
+        private string[] _issueHeaders;
 
         public static CheckRun LastRun(string documentKey)
         {
@@ -109,6 +112,16 @@ namespace ModelProof
             _issues.Columns.Add(L.T("Campo"), 120);
             _issues.Columns.Add(L.T("Valore"), 160);
             _issues.Columns.Add(L.T("Problema"), 380);
+            _issueHeaders = _issues.Columns.Cast<ColumnHeader>().Select(h => h.Text).ToArray();
+            _issues.ColumnClick += (s, e) =>
+            {
+                // clic sull'intestazione: ordina per quella colonna; secondo clic: ordine inverso
+                if (_sortColumn == e.Column) _sortAscending = !_sortAscending;
+                else { _sortColumn = e.Column; _sortAscending = true; }
+                for (int c = 0; c < _issues.Columns.Count; c++)
+                    _issues.Columns[c].Text = _issueHeaders[c] + (c == _sortColumn ? (_sortAscending ? " ▲" : " ▼") : "");
+                FillIssues();
+            };
             _issues.DoubleClick += (s, e) => Send(SelectedIssues(), ShowMode.Zoom);
             _issues.KeyDown += (s, e) =>
             {
@@ -252,7 +265,32 @@ namespace ModelProof
             IEnumerable<RuleResult> source = selected.Count > 0 ? selected : _run.Results;
             IEnumerable<Issue> all = source.SelectMany(r => r.Issues);
             if (_onlyErrors.Checked) all = all.Where(i => i.Error);
-            return all.OrderBy(i => i.Priority).ToList();   // OrderBy è stabile: dentro la priorità resta l'ordine della verifica
+            // prima la priorità (errori, non in elenco, avvisi, OK), poi la colonna scelta; OrderBy è stabile: a parità
+            // resta l'ordine della verifica
+            IOrderedEnumerable<Issue> ordered = all.OrderBy(i => i.Priority);
+            if (_sortColumn == 2)
+                ordered = _sortAscending ? ordered.ThenBy(i => i.ElementId) : ordered.ThenByDescending(i => i.ElementId);
+            else if (_sortColumn > 0)
+            {
+                Func<Issue, string> key = SortKey(_sortColumn);
+                ordered = _sortAscending ? ordered.ThenBy(key, StringComparer.CurrentCultureIgnoreCase) : ordered.ThenByDescending(key, StringComparer.CurrentCultureIgnoreCase);
+            }
+            else if (_sortColumn == 0 && !_sortAscending)
+                ordered = all.OrderByDescending(i => i.Priority);
+            return ordered.ToList();
+        }
+
+        private static Func<Issue, string> SortKey(int column)
+        {
+            switch (column)
+            {
+                case 1: return i => i.Role ?? "";
+                case 3: return i => i.Category ?? "";
+                case 4: return i => i.FamilyType ?? "";
+                case 5: return i => i.Field ?? "";
+                case 6: return i => i.Value ?? "";
+                default: return i => i.Message ?? "";
+            }
         }
 
         private List<Issue> SelectedIssues()

@@ -151,3 +151,9 @@ ModelProof – registro delle modifiche
      Exterior o Interior (errore, una volta per tipo) e i locali ai due lati del muro devono concordare (avviso);
    - nuova fonte della coerenza «locale»: il locale che contiene l'elemento (porte e finestre: uno dei due locali),
      letto con le regole con formato sui locali. Elementi fuori dai locali: non confrontati.
+
+17. Ordinamento delle anomalie per colonna:
+   - clic sull'intestazione di una colonna dell'elenco delle anomalie: ordine alfabetico per quella colonna (ID in
+     ordine numerico), secondo clic ordine inverso; la freccia nell'intestazione mostra la colonna e il verso;
+   - l'ordine vale dentro ogni livello (errori, non in elenco, avvisi, OK) e dentro ogni regola, e si applica a tutte
+     le anomalie prima del limite di righe mostrate.
