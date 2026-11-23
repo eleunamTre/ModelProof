@@ -216,3 +216,7 @@ ModelProof – registro delle modifiche
      aggiorna gli esistenti» (quelli con «sovrascrivi = no» non si toccano) oppure «Crea solo i mancanti»;
    - codice categoria e categoria ammessa: «Walls» vale anche per cornici e scanalature dei muri (Wall Sweeps,
      Reveals) e «Topography» anche per Toposolid (e viceversa).
+
+25. Parametri condivisi, falsi parametri (23/11): esclusi i parametri nascosti (definizione con Visible = false, creati
+   da altri programmi); con «prefisso» si controllano i parametri che iniziano così più quelli scritti nell'elenco
+   (es. un prefisso di progetto e parametri dell'elenco senza prefisso), come nello script Dynamo dell'utente.

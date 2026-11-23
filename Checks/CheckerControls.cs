@@ -123,7 +123,8 @@ namespace ModelProof
 
         /// <summary>
         /// Parametri condivisi IN USO nel modello (assegnati ad almeno una categoria del progetto, oppure compilati su
-        /// almeno un elemento o tipo): ognuno deve essere nell'elenco della regola. I parametri condivisi solo
+        /// almeno un elemento o tipo): ognuno deve essere nell'elenco della regola. Parametri nascosti (Visible = false,
+        /// creati da altri programmi) esclusi. I parametri condivisi solo
         /// registrati nel documento (arrivati con famiglie, mai usati: «fantasma») non contano, e i parametri
         /// dell'elenco che il modello non usa non sono un errore. Chiave facoltativa «prefisso»: si controllano solo i
         /// parametri il cui nome inizia così (maiuscole e minuscole contano).
@@ -134,8 +135,9 @@ namespace ModelProof
             CodeList list = RuleList(rule, rr);
             if (list == null) return;
             string prefix = rule.Get("prefisso").Trim().Trim('"');
-            Func<string, bool> passes = n => prefix.Length == 0 || n.StartsWith(prefix, StringComparison.Ordinal);
             var wanted = new HashSet<string>(list.Codes(1).Select(x => x.Trim()).Where(x => x.Length > 0), StringComparer.Ordinal);
+            // con il prefisso si controllano i parametri che iniziano così, più quelli scritti nell'elenco
+            Func<string, bool> passes = n => prefix.Length == 0 || n.StartsWith(prefix, StringComparison.Ordinal) || wanted.Contains(n);
 
             // parametri condivisi registrati nel documento
             var byGuid = new Dictionary<Guid, string>();
@@ -144,7 +146,9 @@ namespace ModelProof
             {
                 sharedIds.Add(sp.Id.Value);
                 string n = (sp.Name ?? "").Trim();
-                if (passes(n)) byGuid[sp.GuidValue] = n;
+                bool visible = true;
+                try { InternalDefinition d = sp.GetDefinition(); if (d != null) visible = d.Visible; } catch { }
+                if (visible && passes(n)) byGuid[sp.GuidValue] = n;   // parametri nascosti (di altri programmi): non contano
             }
 
             // assegnati alle categorie del progetto (condivisi o no)
@@ -156,7 +160,9 @@ namespace ModelProof
                 var def = it.Key as InternalDefinition;
                 if (def == null) continue;
                 string n = (def.Name ?? "").Trim();
-                if (!passes(n)) continue;
+                bool shown = true;
+                try { shown = def.Visible; } catch { }
+                if (!shown || !passes(n)) continue;
                 int cats = 1;
                 try { var b = it.Current as ElementBinding; if (b != null) cats = b.Categories.Size; } catch { }
                 if (cats == 0) continue;
