@@ -166,6 +166,7 @@ namespace ModelProof
                     if (c == null || c.CategoryType != CategoryType.Model || _excl.Contains(c)) continue;
                     ElementId tid = e.GetTypeId();
                     if (tid == null || tid == ElementId.InvalidElementId) continue;
+                    if (e is ImportInstance) continue;                             // DWG/DXF importati o collegati: non sono elementi del modello
                     var fi = e as FamilyInstance;
                     if (fi != null && fi.SuperComponent != null) continue;          // componenti annidati
                     if (e.DesignOption != null && !e.DesignOption.IsPrimary) continue; // opzioni di progetto secondarie

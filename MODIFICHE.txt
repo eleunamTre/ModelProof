@@ -227,3 +227,6 @@ ModelProof – registro delle modifiche
    progetto, viste, tavole). Nuova chiave «escludi»: nomi o inizi di nome con * finale da non controllare.
 
 27. Correzione di compilazione della 26: Rule.Get con valore di riserva (mancava l'overload a due argomenti).
+
+28. I file CAD importati o collegati (ImportInstance: DWG, DXF…) non sono più tra gli elementi controllati (avevano
+   «parametro assente» sui parametri IFC e categoria uguale al nome del file).
