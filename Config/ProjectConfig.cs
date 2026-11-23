@@ -100,6 +100,7 @@ namespace ModelProof
         public List<string> ValidValues = new List<string>();
         public string Reference;       // modello di riferimento (es. URS)
         public string ListName = "";   // elenco usato da un controllo pronto («elenco = NOME»)
+        public bool OnlyCoherence;     // «solo_coerenza = si»: la regola segnala solo la coerenza (formato, vuoti e numerazione li segnala un'altra regola)
         public double ToleranceMm = 1;
         public double ToleranceDeg = 0.001;
 
@@ -311,6 +312,7 @@ namespace ModelProof
                 r.ToleranceMm = ReadNumber(s, "tolleranza_mm", r.ToleranceMm, where);
                 r.ToleranceDeg = ReadNumber(s, "tolleranza_gradi", r.ToleranceDeg, where);
                 r.ListName = s.Get("elenco").Trim();
+                r.OnlyCoherence = s.Get("solo_coerenza").Trim().ToLowerInvariant().StartsWith("s");
                 if (r.ListName.Length > 0)
                 {
                     CodeList used;

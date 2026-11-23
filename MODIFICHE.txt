@@ -257,3 +257,7 @@ ModelProof – registro delle modifiche
    (nome del circuito, livelli degli elementi collegati per la coerenza). Funzione muri, locali ai lati: 5 punti lungo il
    muro a due altezze, in tutte le fasi che hanno locali, basta un punto per lato (prima un solo punto a metà muro e
    solo l'ultima fase: muri con due locali per lato visti con un locale solo).
+
+35. Nuova chiave delle regole «solo_coerenza = si»: la regola segnala solo la coerenza (niente vuoti, formato,
+   formato_avviso, uguale_a, numerazione), così la stessa coerenza si può mettere in una sezione a parte senza doppioni.
+   Circuiti elettrici: nessun confronto della zona con i livelli (dipende dal quadro).

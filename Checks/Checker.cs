@@ -249,19 +249,20 @@ namespace ModelProof
                     string value = ReadField(rule.Object, t, field, out exists);
                     if (!exists)
                     {
-                        if (rule.Absent != "ignora")
+                        if (rule.Absent != "ignora" && !rule.OnlyCoherence)
                             rr.Issues.Add(MakeIssue(rule, t, error && rule.Absent == "errore", IssueKind.Mancante, field, "", L.F("parametro «{0}» assente", field)));
                         continue;
                     }
                     rr.Issues.Add(MakeOk(rule, t, field, value));
                     if (IsEmpty(value, rule))
                     {
+                        if (rule.OnlyCoherence) { rr.Issues.RemoveAt(rr.Issues.Count - 1); continue; }
                         rr.Issues.Add(MakeIssue(rule, t, error, IssueKind.Mancante, field, value, L.F("«{0}» non compilato", field)));
                         continue;
                     }
                     if (rule.ValidValues.Any(v => string.Equals(v, value.Trim(), StringComparison.OrdinalIgnoreCase))) continue;
 
-                    foreach (WarnFormat w in rule.WarnFormats)
+                    if (!rule.OnlyCoherence) foreach (WarnFormat w in rule.WarnFormats)
                         if (string.Equals(w.Field, field, StringComparison.OrdinalIgnoreCase) && !SafeMatch(w.Regex, value).Success)
                             rr.Issues.Add(MakeIssue(rule, t, false, IssueKind.Formato, field, value, L.F("valore diverso dal formato atteso {0}", w.Format)));
 
@@ -269,6 +270,7 @@ namespace ModelProof
                     Match m = SafeMatch(rule.Regex, value);
                     if (!m.Success)
                     {
+                        if (rule.OnlyCoherence) { rr.Issues.RemoveAt(rr.Issues.Count - 1); continue; }   // il formato lo segnala l'altra regola
                         List<string> unlisted = ProjectConfig.Unlisted(rule, value);
                         if (unlisted != null)
                             rr.Issues.Add(MakeIssue(rule, t, error, IssueKind.Elenco, field, value, string.Join("; ", unlisted)));
@@ -280,7 +282,7 @@ namespace ModelProof
 
                     CheckCoherence(rule, rr, t, field, value, m, error);
 
-                    if (rule.EqualTo != null)
+                    if (rule.EqualTo != null && !rule.OnlyCoherence)
                     {
                         Parameter op = RevitUtil.FindParameter(t.El, rule.EqualTo);
                         string other = RevitUtil.ValueOf(op, _doc);
@@ -290,7 +292,7 @@ namespace ModelProof
                             rr.Issues.Add(MakeIssue(rule, t, error, IssueKind.Coerenza, field, value, L.F("«{0}» è «{1}»: dovrebbe essere uguale", rule.EqualTo, other)));
                     }
 
-                    if (rule.NumberGroup != null)
+                    if (rule.NumberGroup != null && !rule.OnlyCoherence)
                     {
                         int n;
                         RxGroup g = m.Groups[rule.NumberGroup];
@@ -482,7 +484,8 @@ namespace ModelProof
                                     Level l = RevitUtil.LevelOf(m);
                                     if (l != null) lv[l.Id.Value] = l;
                                 }
-                                list.Add(new Target { El = es, Type = null, Levels = lv.Values.ToList(), Id = es.Id.Value, ShowId = show, Category = CatName(es), FamilyType = es.Name ?? "" });
+                                // livelli vuoti: la zona di un circuito dipende dal quadro, non dagli elementi collegati
+                                list.Add(new Target { El = es, Type = null, Levels = new List<Level>(), Id = es.Id.Value, ShowId = show, Category = CatName(es), FamilyType = es.Name ?? "" });
                             }
                             catch { }
                         }
