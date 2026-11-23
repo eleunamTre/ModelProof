@@ -23,6 +23,8 @@ namespace ModelProof
             public readonly List<RowStyle> Styles = new List<RowStyle>();
             public double[] Widths;
             public bool HeaderRow;     // prima riga = intestazione (fissa e con filtro)
+            public int ChoiceColumn = -1;          // colonna con un menu a tendina (convalida dati), -1 = nessuna
+            public string[] Choices;
         }
 
         private readonly List<Sheet> _sheets = new List<Sheet>();
@@ -34,6 +36,13 @@ namespace ModelProof
             var s = new Sheet { Name = UniqueName(name), Widths = widths, HeaderRow = headerRow };
             _sheets.Add(s);
             return _sheets.Count - 1;
+        }
+
+        /// <summary>Menu a tendina su una colonna, dalla seconda riga alla fine dei dati (si può anche scrivere altro).</summary>
+        public void SetChoices(int sheet, int column, params string[] choices)
+        {
+            _sheets[sheet].ChoiceColumn = column;
+            _sheets[sheet].Choices = choices;
         }
 
         public void AddRow(int sheet, RowStyle style, params object[] cells)
@@ -233,6 +242,13 @@ namespace ModelProof
             }
             sb.Append("</sheetData>");
             if (s.HeaderRow && s.Rows.Count > 0) sb.Append("<autoFilter ref=\"" + Range(s) + "\"/>");
+            if (s.ChoiceColumn >= 0 && s.Choices != null && s.Choices.Length > 0 && s.Rows.Count > 1)
+            {
+                string col = Col(s.ChoiceColumn);
+                string list = string.Join(",", s.Choices).Replace("\"", "");
+                sb.Append("<dataValidations count=\"1\"><dataValidation type=\"list\" allowBlank=\"1\" showErrorMessage=\"0\" sqref=\"" +
+                    col + "2:" + col + s.Rows.Count + "\"><formula1>\"" + Esc(list) + "\"</formula1></dataValidation></dataValidations>");
+            }
             sb.Append("</worksheet>");
             return sb.ToString();
         }

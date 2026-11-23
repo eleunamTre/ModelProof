@@ -230,3 +230,7 @@ ModelProof – registro delle modifiche
 
 28. I file CAD importati o collegati (ImportInstance: DWG, DXF…) non sono più tra gli elementi controllati (avevano
    «parametro assente» sui parametri IFC e categoria uguale al nome del file).
+
+29. Excel, verifica manuale: in ogni foglio di sezione due colonne in fondo, «Verifica manuale» con menu a tendina
+   (Falso positivo, Confermato, Corretto, Da verificare; si può scrivere anche altro) e «Note di verifica» libere.
+   XlsxWriter: convalida dati a elenco su una colonna (SetChoices).

@@ -195,6 +195,12 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["Falso positivo"] = "False positive";
+            d["Confermato"] = "Confirmed";
+            d["Corretto"] = "Fixed";
+            d["Da verificare"] = "To check";
+            d["Verifica manuale"] = "Manual check";
+            d["Note di verifica"] = "Check notes";
             d["Abachi di controllo: {0} nel file delle regole, {1} già nel modello"] = "Check schedules: {0} in the rules file, {1} already in the model";
             d["(esiste)"] = "(exists)";
             d["Gli abachi aggiornati restano sulle tavole dove sono. Si annulla con Ctrl+Z."] = "Updated schedules stay on their sheets. Undo with Ctrl+Z.";

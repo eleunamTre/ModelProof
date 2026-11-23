@@ -75,9 +75,11 @@ namespace ModelProof
                 if (r.Issues.Any(i => !i.Ok) && !chapters.Contains(r.Rule.Chapter)) chapters.Add(r.Rule.Chapter);   // le righe OK solo nella finestra
             foreach (string chapter in chapters)
             {
-                int sh = x.AddSheet(chapter, new double[] { 28, 9, 12, 8, 34, 11, 22, 40, 22, 26, 70 }, true);
+                int sh = x.AddSheet(chapter, new double[] { 28, 9, 12, 8, 34, 11, 22, 40, 22, 26, 70, 18, 40 }, true);
+                // ultime due colonne per il controllo a mano: esito (menu a tendina) e note
+                x.SetChoices(sh, 11, L.T("Falso positivo"), L.T("Confermato"), L.T("Corretto"), L.T("Da verificare"));
                 x.AddRow(sh, XlsxWriter.RowStyle.Header, L.T("Regola"), L.T("Gravità"), L.T("Tipo"), L.T("Modello"), L.T("File"), "ID", L.T("Categoria"),
-                    L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Stato"));
+                    L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Stato"), L.T("Verifica manuale"), L.T("Note di verifica"));
                 foreach (RuleResult r in run.Results.Where(r => r.Rule.Chapter == chapter))
                     foreach (Issue i in r.Issues.Where(i => !i.Ok).OrderBy(i => i.Priority))
                         x.AddRow(sh, i.Priority == 0 ? XlsxWriter.RowStyle.Error : i.Priority == 1 ? XlsxWriter.RowStyle.Unlisted : XlsxWriter.RowStyle.Warning,

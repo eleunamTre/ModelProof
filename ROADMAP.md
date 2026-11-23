@@ -49,5 +49,8 @@ sintesi e foto delle anomalie, verifica di più modelli insieme (ARC, MEP, URS).
    proposta locale dagli esempi (si riconoscono campi, separatori e codici degli elenchi).
 6. Mappatura IFC per codice di categoria + funzione (oggi la regola «classe ifc» usa solo il codice di categoria
    ed è un avviso): elenco dedicato nel file di configurazione con classe e tipo predefinito attesi.
-7. Da decidere: tolleranze di coordinate e angoli, soglia dell'esito PARZIALE, parametri in lista ma assenti;
+7. Falsi positivi confermati: rileggere un Excel di risultati con la colonna «Verifica manuale» compilata e
+   ricordare le anomalie segnate «Falso positivo» (per file, regola, elemento e valore) per mostrarle a parte, in
+   grigio, nelle verifiche successive; elenco consultabile e annullabile.
+8. Da decidere: tolleranze di coordinate e angoli, soglia dell'esito PARZIALE, parametri in lista ma assenti;
    righe OK delle regole di campi nella finestra (tenerle, metterle dietro un'opzione o toglierle dopo le prove).
