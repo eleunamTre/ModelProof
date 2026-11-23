@@ -136,8 +136,18 @@ namespace ModelProof
             if (list == null) return;
             string prefix = rule.Get("prefisso").Trim().Trim('"');
             var wanted = new HashSet<string>(list.Codes(1).Select(x => x.Trim()).Where(x => x.Length > 0), StringComparer.Ordinal);
+            // «escludi»: nomi o inizi di nome (con * finale) da non controllare
+            var skip = ProjectConfig.SplitList(rule.Get("escludi"), ';');
+            Func<string, bool> skipped = n => skip.Any(x => x.EndsWith("*")
+                ? n.StartsWith(x.Substring(0, x.Length - 1), StringComparison.Ordinal)
+                : string.Equals(n, x, StringComparison.Ordinal));
             // con il prefisso si controllano i parametri che iniziano così, più quelli scritti nell'elenco
-            Func<string, bool> passes = n => prefix.Length == 0 || n.StartsWith(prefix, StringComparison.Ordinal) || wanted.Contains(n);
+            Func<string, bool> passes = n => !skipped(n) && (prefix.Length == 0 || n.StartsWith(prefix, StringComparison.Ordinal) || wanted.Contains(n));
+            // «criterio»: quando un parametro è «in uso». compilati (di base) = ha un valore su almeno un elemento o tipo
+            // del modello; assegnati = è un parametro di progetto; assegnati o compilati = uno dei due
+            string criterion = rule.Get("criterio", "compilati").Trim().ToLowerInvariant();
+            bool useBound = criterion.Contains("assegnati");
+            bool useFilled = criterion.Contains("compilati");
 
             // parametri condivisi registrati nel documento
             var byGuid = new Dictionary<Guid, string>();
@@ -171,7 +181,7 @@ namespace ModelProof
 
             // compilati su elementi o tipi (anche se arrivano solo dalle famiglie)
             var filled = new Dictionary<Guid, int>();
-            if (byGuid.Count > 0)
+            if (byGuid.Count > 0 && useFilled)
                 foreach (bool types in new[] { false, true })
                 {
                     var coll = new FilteredElementCollector(_doc);
@@ -181,7 +191,8 @@ namespace ModelProof
                         if (filled.Count == byGuid.Count) break;
                         try
                         {
-                            if (el.Category == null) continue;
+                            // solo elementi e tipi del modello (non informazioni di progetto, viste, tavole…)
+                            if (el.Category == null || el.Category.CategoryType != CategoryType.Model) continue;
                             foreach (Parameter p in el.Parameters)
                             {
                                 if (!p.IsShared) continue;
@@ -196,7 +207,7 @@ namespace ModelProof
             var filledByName = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var kv in filled) { int c; filledByName.TryGetValue(byGuid[kv.Key], out c); filledByName[byGuid[kv.Key]] = c + kv.Value; }
 
-            var inUse = new SortedSet<string>(bound.Concat(filledByName.Keys), StringComparer.Ordinal);
+            var inUse = new SortedSet<string>((useBound ? bound : Enumerable.Empty<string>()).Concat(useFilled ? filledByName.Keys : Enumerable.Empty<string>()), StringComparer.Ordinal);
             foreach (string n in inUse)
             {
                 rr.Checked++;

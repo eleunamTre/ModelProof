@@ -220,3 +220,8 @@ ModelProof – registro delle modifiche
 25. Parametri condivisi, falsi parametri (23/11): esclusi i parametri nascosti (definizione con Visible = false, creati
    da altri programmi); con «prefisso» si controllano i parametri che iniziano così più quelli scritti nell'elenco
    (es. un prefisso di progetto e parametri dell'elenco senza prefisso), come nello script Dynamo dell'utente.
+
+26. Parametri condivisi, quando un parametro è «in uso»: nuova chiave «criterio» = compilati (di base: ha un valore su
+   almeno un elemento o tipo del modello), assegnati (è un parametro di progetto) oppure «assegnati o compilati»
+   (come la voce 20). I valori si cercano solo su elementi e tipi di categorie del modello (non informazioni di
+   progetto, viste, tavole). Nuova chiave «escludi»: nomi o inizi di nome con * finale da non controllare.
