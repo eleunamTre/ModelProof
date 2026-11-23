@@ -40,6 +40,9 @@ sintesi e foto delle anomalie, verifica di più modelli insieme (ARC, MEP, URS).
 5. Finestra di configurazione guidata che scrive lo stesso file di testo: elenco delle regole, scheda per regola con
    oggetto, campo, formato costruito a pezzi dai segnaposto, coerenza e numerazione scelte da menu, prova immediata
    sui valori del modello aperto (es. i primi nomi dei tipi); stessa cosa per elenchi, abachi e checklist.
+   Dopo: editor a blocchi in stile Dynamo (nodi collegati da fili: sorgente → lettura del campo → formato →
+   confronto → esito), con blocchi di base (oggetti, campi, segnaposto, elenchi, coerenza, numerazione, condizioni)
+   e blocchi personalizzati salvati e riusabili; il grafo si salva nello stesso file di configurazione.
    Poi, facoltativo: regola proposta a partire da una frase («il Type Mark è CAT.fu.N coerente con il nome») o da
    esempi di valori giusti, mostrata nella finestra guidata per conferma. Con un modello linguistico servirebbe una
    connessione e una scelta sulla riservatezza (il testo delle regole uscirebbe dal computer); in alternativa
