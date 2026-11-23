@@ -328,6 +328,61 @@ namespace ModelProof
             }
         }
 
+        /// <summary>
+        /// Classe IFC del tipo coerente con il codice di categoria del nome: il valore del campo (di base «Export Type to
+        /// IFC As») deve essere una delle classi IFC dell'elenco per quel codice (colonna «colonna_ifc», classi separate
+        /// da «;» o «,»). Si confronta senza maiuscole, senza il «Type» finale e senza il tipo predefinito dopo il punto
+        /// (IfcWallType e IfcWall.SOLIDWALL valgono IfcWall). Codici senza classi in elenco: non controllati; campo
+        /// vuoto: lo segnala la regola sui parametri IFC.
+        /// </summary>
+        private void CheckIfcClass(Rule rule, RuleResult rr)
+        {
+            bool error = rule.Severity == "errore";
+            CodeList list = RuleList(rule, rr);
+            if (list == null) return;
+            int cCode = Column(rule, "colonna_codice", 1), cIfc = Column(rule, "colonna_ifc", 5);
+            string part = Part(rule, "parte_categoria", "CAT");
+            string field = rule.Fields.Count > 0 ? rule.Fields[0] : "Export Type to IFC As";
+            var classes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (ConfigRow r in list.Rows)
+            {
+                string code = r.Cell(cCode - 1).Trim();
+                if (code.Length == 0) continue;
+                List<string> l;
+                if (!classes.TryGetValue(code, out l)) classes[code] = l = new List<string>();
+                foreach (string c in r.Cell(cIfc - 1).Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    if (c.Trim().Length > 0 && !l.Contains(c.Trim())) l.Add(c.Trim());
+            }
+            foreach (Target t in Targets("tipi"))
+            {
+                string text;
+                Match m = TypeNameMatch(t.Type, out text);
+                if (!m.Success || !m.Groups[part].Success) continue;
+                string code = m.Groups[part].Value;
+                List<string> allowed;
+                if (!classes.TryGetValue(code, out allowed) || allowed.Count == 0) continue;
+                string value = RevitUtil.ValueOf(RevitUtil.FindParameter(t.Type, field), _doc);
+                if (string.IsNullOrWhiteSpace(value)) continue;
+                rr.Checked++;
+                string v = IfcBase(value);
+                if (allowed.Any(a => string.Equals(IfcBase(a), v, StringComparison.OrdinalIgnoreCase)))
+                    rr.Issues.Add(MakeOkFor(rule, t, field, value, string.Format("{0}: {1}", code, string.Join(", ", allowed))));
+                else
+                    rr.Issues.Add(TypeIssue(rule, error, t, field, value,
+                        L.F("classe IFC «{0}» non prevista per «{1}» (previste: {2})", value, code, string.Join(", ", allowed))));
+            }
+        }
+
+        /// <summary>Classe IFC senza tipo predefinito («.SOLIDWALL») e senza «Type» finale.</summary>
+        private static string IfcBase(string s)
+        {
+            string v = (s ?? "").Trim();
+            int dot = v.IndexOf('.');
+            if (dot > 0) v = v.Substring(0, dot);
+            if (v.EndsWith("Type", StringComparison.OrdinalIgnoreCase) && v.Length > 7) v = v.Substring(0, v.Length - 4);
+            return v;
+        }
+
         private Issue MakeOkFor(Rule rule, Target t, string field, string value, string message)
         {
             Issue i = MakeIssue(rule, t, false, IssueKind.Controllo, field, value, message.Length > 0 ? message : L.T("conforme"));

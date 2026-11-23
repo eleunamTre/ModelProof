@@ -254,11 +254,11 @@ namespace ModelProof
         public static readonly string[] Controls =
         {
             "nome file", "stesso edificio", "coordinate", "livelli uguali al riferimento", "copy monitor livelli",
-            "parametri condivisi", "codice categoria", "funzione ammessa", "categoria ammessa", "funzione muri"
+            "parametri condivisi", "codice categoria", "funzione ammessa", "categoria ammessa", "funzione muri", "classe ifc"
         };
 
         /// <summary>Controlli pronti che leggono un elenco del file (chiave «elenco»).</summary>
-        public static readonly string[] ControlsWithList = { "parametri condivisi", "codice categoria", "funzione ammessa", "categoria ammessa" };
+        public static readonly string[] ControlsWithList = { "parametri condivisi", "codice categoria", "funzione ammessa", "categoria ammessa", "classe ifc" };
 
         /// <summary>Oggetti controllabili con le regole di campi (valore di «oggetto»).</summary>
         public static readonly string[] Objects =

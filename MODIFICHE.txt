@@ -194,3 +194,10 @@ ModelProof – registro delle modifiche
      (annullabile con Ctrl+Z), sostituisce quelli con lo stesso nome se «sovrascrivi = si», apre il primo e riassume
      campi creati e non trovati. I campi si cercano per nome e, per i più comuni, anche per parametro di Revit (vale
      anche con Revit in un'altra lingua). Unico comando che modifica il modello.
+
+22. Classe IFC coerente con il nome:
+   - nuovo controllo pronto «classe ifc»: per ogni tipo usato, il codice di categoria del nome (famiglia o tipo di
+     sistema) indica nell'elenco (colonna «colonna_ifc») le classi IFC previste; il valore di «Export Type to IFC As»
+     (o del campo indicato) deve essere una di queste. Si confronta senza maiuscole, senza «Type» finale e senza il
+     tipo predefinito dopo il punto. Codici senza classi: non controllati; valore vuoto: lo segnala la regola dei
+     parametri IFC.

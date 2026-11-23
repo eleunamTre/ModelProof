@@ -195,6 +195,7 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["classe IFC «{0}» non prevista per «{1}» (previste: {2})"] = "IFC class «{0}» not expected for «{1}» (expected: {2})";
             d["ABACHI"] = "SCHEDULES";
             d["Crea nel modello gli abachi di controllo descritti nel file delle regole (sezioni [ABACO nome]), per verificare a mano parametri, IFC, materiali e locali. Chiede conferma; si annulla con Ctrl+Z."] = "Creates in the model the check schedules described in the rules file ([ABACO name] sections), to check parameters, IFC, materials and rooms by hand. Asks for confirmation; undo with Ctrl+Z.";
             d["Crea\nabachi"] = "Create\nschedules";
