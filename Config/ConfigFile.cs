@@ -51,6 +51,9 @@ namespace ModelProof
 
         public bool IsRule { get { return Name.StartsWith("REGOLA ", StringComparison.OrdinalIgnoreCase); } }
         public string RuleName { get { return IsRule ? Name.Substring(7).Trim() : null; } }
+        /// <summary>Sezione [ABACO nome]: abaco da creare nel modello per il controllo a mano.</summary>
+        public bool IsSchedule { get { return Name.StartsWith("ABACO ", StringComparison.OrdinalIgnoreCase); } }
+        public string ScheduleName { get { return IsSchedule ? Name.Substring(6).Trim() : null; } }
 
         public ConfigEntry Find(string key)
         {

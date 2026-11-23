@@ -184,3 +184,13 @@ ModelProof – registro delle modifiche
      vale per i muri di tipo facciata continua, «Walls» per gli altri muri (codice categoria e categoria ammessa);
    - lingua: i nomi delle fonti della coerenza (livello, nome, locale…) e dei campi (Nome, Nome tipo, Nome famiglia)
      si mostrano nella lingua dell'interfaccia; nel CSV il tipo di anomalia usa lo stesso testo dell'Excel.
+
+21. Abachi di controllo:
+   - nuove sezioni [ABACO nome] nel file di configurazione: tipo (multicategoria, computo materiali, categoria +
+     «categoria» con il nome inglese), campi separati da «;» («PREFISSO*» = tutti i campi che iniziano così, in ordine
+     alfabetico), ordina (campo con opzioni tra parentesi: intestazione, piede, riga vuota, decrescente), dettaglio
+     (una riga per istanza), totale, sovrascrivi (si/no). Elencati nella finestra delle regole;
+   - nuovo comando «Crea abachi» (pannello Strumenti): chiede conferma, crea gli abachi in una sola transazione
+     (annullabile con Ctrl+Z), sostituisce quelli con lo stesso nome se «sovrascrivi = si», apre il primo e riassume
+     campi creati e non trovati. I campi si cercano per nome e, per i più comuni, anche per parametro di Revit (vale
+     anche con Revit in un'altra lingua). Unico comando che modifica il modello.

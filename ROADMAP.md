@@ -21,6 +21,7 @@ sintesi e foto delle anomalie, verifica di più modelli insieme (ARC, MEP, URS).
 - Controlli pronti sugli elenchi (parametri condivisi, codice categoria, funzione ammessa, categoria ammessa),
   funzione dei muri e numero del locale nella ZBS (MODIFICHE 16).
 - Comando «Interroga collegamento»: ID e parametri degli elementi dei modelli collegati (MODIFICHE 18).
+- Comando «Crea abachi»: abachi di controllo configurati nel file delle regole (MODIFICHE 21).
 - Righe OK in verde nella finestra, nascoste da «Solo errori» (MODIFICHE 14–15).
 - Dettaglio delle coordinate di tutti i file (valori, nord reale, coordinate condivise, posizionamento dei
   collegamenti) nella finestra e nell'Excel (MODIFICHE 13).

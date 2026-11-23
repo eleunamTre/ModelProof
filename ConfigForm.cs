@@ -247,6 +247,14 @@ namespace ModelProof
             }
             sb.AppendLine();
 
+            if (c.Schedules.Count > 0)
+            {
+                sb.AppendLine(L.T("ABACHI"));
+                foreach (ScheduleSpec a in c.Schedules)
+                    sb.AppendLine(string.Format("  {0,-36} {1,-18} {2}", a.Name, a.Kind + (a.Category.Length > 0 ? " " + a.Category : ""), string.Join(" ; ", a.Fields)));
+                sb.AppendLine();
+            }
+
             sb.AppendLine(L.T("ELENCHI"));
             foreach (CodeList l in c.Lists.Values)
                 sb.AppendLine(string.Format("  {0,-24} {1}", l.Name, L.F("{0} righe", l.Rows.Count)));

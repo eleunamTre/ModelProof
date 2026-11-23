@@ -115,6 +115,26 @@ namespace ModelProof
         public HashSet<string> Codes;
     }
 
+    /// <summary>Abaco da creare nel modello ([ABACO nome]).</summary>
+    internal sealed class ScheduleSpec
+    {
+        public string Name;
+        public int Line;
+        public string Kind = "multicategoria";    // multicategoria | computo materiali | categoria
+        public string Category = "";              // nome inglese della categoria (tipo = categoria)
+        public List<string> Fields = new List<string>();   // nomi dei campi; «PREFISSO*» = tutti i campi che iniziano così
+        public List<ScheduleSort> Sorts = new List<ScheduleSort>();
+        public bool Itemize = true;               // una riga per ogni istanza
+        public bool GrandTotal;
+        public bool Overwrite = true;             // sostituisce l'abaco con lo stesso nome
+    }
+
+    internal sealed class ScheduleSort
+    {
+        public string Field;
+        public bool Header, Footer, Blank, Descending;
+    }
+
     /// <summary>Riga della sezione [CHECKLIST]: dove va l'esito delle regole.</summary>
     internal sealed class ChecklistLink
     {
@@ -175,6 +195,7 @@ namespace ModelProof
             c.ReadRules();
             c.ReadChecklist();
             c.ReadExclusions();
+            c.ReadSchedules();
             c.CheckModels();
             c.CheckDuplicates();
             return c;
@@ -184,7 +205,7 @@ namespace ModelProof
         {
             foreach (ConfigSection s in File.Sections)
             {
-                if (s.IsRule || NonListSections.Any(n => string.Equals(n, s.Name, StringComparison.OrdinalIgnoreCase))) continue;
+                if (s.IsRule || s.IsSchedule || NonListSections.Any(n => string.Equals(n, s.Name, StringComparison.OrdinalIgnoreCase))) continue;
                 if (s.Rows.Count == 0)
                 {
                     Add(IssueLevel.Avviso, s.Line, "[" + s.Name + "]", L.T("sezione sconosciuta o elenco vuoto"));
@@ -571,6 +592,66 @@ namespace ModelProof
                 foreach (string r in link.Refs)
                     if (!Checklist.Any(c => c.Row == r))
                         Add(IssueLevel.Errore, link.Line, L.F("checklist {0}", link.Row), L.F("rimando a «{0}», che non è nella sezione", r));
+        }
+
+        /// <summary>Abachi da creare nel modello (sezioni [ABACO nome]).</summary>
+        public readonly List<ScheduleSpec> Schedules = new List<ScheduleSpec>();
+
+        private static readonly Regex RxSort = new Regex(@"^(.+?)\s*(?:\((.*)\))?$", RegexOptions.CultureInvariant);
+
+        private void ReadSchedules()
+        {
+            foreach (ConfigSection s in File.Sections)
+            {
+                if (!s.IsSchedule) continue;
+                string where = "[" + s.Name + "]";
+                var a = new ScheduleSpec { Name = s.ScheduleName, Line = s.Line };
+                if (a.Name.Length == 0) { Add(IssueLevel.Errore, s.Line, where, L.T("manca il nome dell'abaco")); continue; }
+                if (Schedules.Any(x => string.Equals(x.Name, a.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Add(IssueLevel.Errore, s.Line, where, L.T("abaco con lo stesso nome di un altro"));
+                    continue;
+                }
+                a.Kind = s.Get("tipo", "multicategoria").Trim().ToLowerInvariant();
+                if (a.Kind != "multicategoria" && a.Kind != "computo materiali" && a.Kind != "categoria")
+                    Add(IssueLevel.Errore, s.Line, where, L.T("«tipo» deve essere multicategoria, computo materiali o categoria"));
+                a.Category = s.Get("categoria").Trim();
+                if (a.Kind == "categoria" && a.Category.Length == 0)
+                    Add(IssueLevel.Errore, s.Line, where, L.T("con «tipo = categoria» serve «categoria» (nome inglese, es. Rooms)"));
+                a.Fields = SplitList(s.Get("campi"), ';');
+                if (a.Fields.Count == 0) Add(IssueLevel.Errore, s.Line, where, L.T("manca «campi»"));
+                foreach (string item in SplitList(s.Get("ordina"), ';'))
+                {
+                    Match m = RxSort.Match(item);
+                    var o = new ScheduleSort { Field = m.Groups[1].Value.Trim() };
+                    foreach (string opt in SplitList(m.Groups[2].Value, ','))
+                    {
+                        string k = opt.ToLowerInvariant();
+                        if (k == "intestazione") o.Header = true;
+                        else if (k == "piede") o.Footer = true;
+                        else if (k == "riga vuota") o.Blank = true;
+                        else if (k == "decrescente") o.Descending = true;
+                        else Add(IssueLevel.Errore, s.Find("ordina").Line, where, L.F("opzione di ordinamento «{0}» sconosciuta (ammesse: intestazione, piede, riga vuota, decrescente)", opt));
+                    }
+                    if (!a.Fields.Any(f => string.Equals(f, o.Field, StringComparison.OrdinalIgnoreCase)))
+                        Add(IssueLevel.Errore, s.Find("ordina").Line, where, L.F("si ordina per «{0}», che non è tra i campi", o.Field));
+                    a.Sorts.Add(o);
+                }
+                a.Itemize = YesNo(s, "dettaglio", true, where);
+                a.GrandTotal = YesNo(s, "totale", false, where);
+                a.Overwrite = YesNo(s, "sovrascrivi", true, where);
+                Schedules.Add(a);
+            }
+        }
+
+        private bool YesNo(ConfigSection s, string key, bool fallback, string where)
+        {
+            string v = s.Get(key).Trim().ToLowerInvariant();
+            if (v.Length == 0) return fallback;
+            if (v == "si" || v == "sì") return true;
+            if (v == "no") return false;
+            Add(IssueLevel.Errore, s.Find(key).Line, where, L.F("«{0}» deve essere si o no", key));
+            return fallback;
         }
 
         private void ReadExclusions()

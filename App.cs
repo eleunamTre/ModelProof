@@ -46,6 +46,9 @@ namespace ModelProof
             pTools.AddItem(Push("LinkQuery", "Interroga\ncollegamento", asm, typeof(LinkQueryCommand), "pick",
                 "Apre una finestra da cui scegliere in Revit uno o più elementi dei modelli collegati: mostra ID, file, categoria, famiglia e tipo, livello e tutti i parametri, senza aprire il modello originale. Gli ID si copiano (doppio clic, Ctrl+C o clic destro) per «Select by ID» nel file originale.",
                 typeof(ProjectAvailability)));
+            pTools.AddItem(Push("Schedules", "Crea\nabachi", asm, typeof(CreateSchedulesCommand), "schedule",
+                "Crea nel modello gli abachi di controllo descritti nel file delle regole (sezioni [ABACO nome]), per verificare a mano parametri, IFC, materiali e locali. Chiede conferma; si annulla con Ctrl+Z.",
+                typeof(ProjectAvailability)));
 
             RibbonPanel pConfig = app.CreateRibbonPanel(tabName, L.T("Configurazione"));
             pConfig.AddItem(Push("Config", "Regole del\nprogetto", asm, typeof(ConfigCommand), "config",
