@@ -47,8 +47,8 @@ namespace ModelProof
                 "Apre una finestra da cui scegliere in Revit uno o più elementi dei modelli collegati: mostra ID, file, categoria, famiglia e tipo, livello e tutti i parametri, senza aprire il modello originale. Gli ID si copiano (doppio clic, Ctrl+C o clic destro) per «Select by ID» nel file originale.",
                 typeof(ProjectAvailability)));
             pTools.AddItem(Push("Schedules", "Crea\nabachi", asm, typeof(CreateSchedulesCommand), "schedule",
-                "Crea nel modello gli abachi di controllo descritti nel file delle regole (sezioni [ABACO nome]), per verificare a mano parametri, IFC, materiali e locali. Chiede conferma; si annulla con Ctrl+Z.",
-                typeof(ProjectAvailability)));
+                "Crea nel modello gli abachi di controllo descritti nel file delle regole (sezioni [ABACO nome]), per verificare a mano parametri, IFC, materiali e locali. Disponibile solo se il file delle regole contiene abachi. Si sceglie se aggiornare quelli esistenti o creare solo i mancanti; si annulla con Ctrl+Z.",
+                typeof(ScheduleAvailability)));
 
             RibbonPanel pConfig = app.CreateRibbonPanel(tabName, L.T("Configurazione"));
             pConfig.AddItem(Push("Config", "Regole del\nprogetto", asm, typeof(ConfigCommand), "config",

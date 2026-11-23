@@ -195,6 +195,13 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["Abachi di controllo: {0} nel file delle regole, {1} già nel modello"] = "Check schedules: {0} in the rules file, {1} already in the model";
+            d["(esiste)"] = "(exists)";
+            d["Gli abachi aggiornati restano sulle tavole dove sono. Si annulla con Ctrl+Z."] = "Updated schedules stay on their sheets. Undo with Ctrl+Z.";
+            d["Crea i mancanti e aggiorna gli esistenti"] = "Create missing ones and update existing ones";
+            d["Gli abachi con «sovrascrivi = no» nel file delle regole non si toccano."] = "Schedules with «sovrascrivi = no» in the rules file are left unchanged.";
+            d["Crea solo i mancanti"] = "Create only missing ones";
+            d["Gli abachi che esistono già restano come sono."] = "Existing schedules stay as they are.";
             d["aggiornato"] = "updated";
             d["creato"] = "created";
             d["[{0}] {1}: {2} campi."] = "[{0}] {1}: {2} fields.";
@@ -204,10 +211,8 @@ namespace ModelProof
             d["Non riesco a scrivere «{0}»: file in sola lettura o cartella senza permessi."] = "Cannot write «{0}»: read-only file or folder without permissions.";
             d["classe IFC «{0}» non prevista per «{1}» (previste: {2})"] = "IFC class «{0}» not expected for «{1}» (expected: {2})";
             d["ABACHI"] = "SCHEDULES";
-            d["Crea nel modello gli abachi di controllo descritti nel file delle regole (sezioni [ABACO nome]), per verificare a mano parametri, IFC, materiali e locali. Chiede conferma; si annulla con Ctrl+Z."] = "Creates in the model the check schedules described in the rules file ([ABACO name] sections), to check parameters, IFC, materials and rooms by hand. Asks for confirmation; undo with Ctrl+Z.";
+            d["Crea nel modello gli abachi di controllo descritti nel file delle regole (sezioni [ABACO nome]), per verificare a mano parametri, IFC, materiali e locali. Disponibile solo se il file delle regole contiene abachi. Si sceglie se aggiornare quelli esistenti o creare solo i mancanti; si annulla con Ctrl+Z."] = "Creates in the model the check schedules described in the rules file ([ABACO name] sections), to check parameters, IFC, materials and rooms by hand. Available only if the rules file contains schedules. You choose whether to update existing ones or create only the missing ones; undo with Ctrl+Z.";
             d["Crea\nabachi"] = "Create\nschedules";
-            d["Creare {0} abachi nel modello?"] = "Create {0} schedules in the model?";
-            d["Gli abachi con lo stesso nome vengono sostituiti (se «sovrascrivi = si»). Si annulla con Ctrl+Z."] = "Schedules with the same name are replaced (if «sovrascrivi = si»). Undo with Ctrl+Z.";
             d["Il file di configurazione ha {0} errori: correggili prima."] = "The configuration file has {0} errors: fix them first.";
             d["Il file di configurazione non ha abachi: aggiungi una sezione [ABACO nome]."] = "The configuration file has no schedules: add an [ABACO name] section.";
             d["ModelProof – abachi di controllo"] = "ModelProof – check schedules";

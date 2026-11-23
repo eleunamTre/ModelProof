@@ -208,3 +208,11 @@ ModelProof – registro delle modifiche
      è cambiato si elimina e si ricrea e, se era su una tavola, il riepilogo lo dice. Con «sovrascrivi = no» non si tocca;
    - Excel: si scrive prima un file temporaneo accanto e poi si sostituisce quello esistente; se il file è aperto (es.
      in Excel) il vecchio resta intatto e compare un messaggio chiaro. Stesso messaggio per il CSV.
+
+24. Crea abachi: scelta nella finestra e pulsante attivo solo con abachi; falsi positivi del codice categoria:
+   - il pulsante «Crea abachi» è grigio se il file delle regole non ha sezioni [ABACO …] (il file si rilegge solo
+     quando cambia);
+   - la finestra di conferma elenca gli abachi del file indicando quelli che esistono già e offre «Crea i mancanti e
+     aggiorna gli esistenti» (quelli con «sovrascrivi = no» non si toccano) oppure «Crea solo i mancanti»;
+   - codice categoria e categoria ammessa: «Walls» vale anche per cornici e scanalature dei muri (Wall Sweeps,
+     Reveals) e «Topography» anche per Toposolid (e viceversa).

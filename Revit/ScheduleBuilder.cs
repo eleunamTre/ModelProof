@@ -43,15 +43,24 @@ namespace ModelProof
                     return Result.Succeeded;
                 }
 
+                // quali esistono già (stesso nome)
+                var names = new FilteredElementCollector(doc).OfClass(typeof(ViewSchedule)).Cast<ViewSchedule>()
+                    .Select(s => s.Name).ToList();
+                var existing = cfg.Schedules.Where(a => names.Contains(a.Name)).ToList();
                 var ask = new TaskDialog("ModelProof")
                 {
-                    MainInstruction = L.F("Creare {0} abachi nel modello?", cfg.Schedules.Count),
-                    MainContent = string.Join("\n", cfg.Schedules.Select(a => "• " + a.Name)) + "\n\n" +
-                                  L.T("Gli abachi con lo stesso nome vengono sostituiti (se «sovrascrivi = si»). Si annulla con Ctrl+Z."),
-                    CommonButtons = TaskDialogCommonButtons.Yes | TaskDialogCommonButtons.No,
-                    DefaultButton = TaskDialogResult.Yes
+                    MainInstruction = L.F("Abachi di controllo: {0} nel file delle regole, {1} già nel modello", cfg.Schedules.Count, existing.Count),
+                    MainContent = string.Join("\n", cfg.Schedules.Select(a => "• " + a.Name + (names.Contains(a.Name) ? "  " + L.T("(esiste)") : ""))) + "\n\n" +
+                                  L.T("Gli abachi aggiornati restano sulle tavole dove sono. Si annulla con Ctrl+Z."),
+                    CommonButtons = TaskDialogCommonButtons.Cancel
                 };
-                if (ask.Show() != TaskDialogResult.Yes) return Result.Cancelled;
+                ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, L.T("Crea i mancanti e aggiorna gli esistenti"),
+                    L.T("Gli abachi con «sovrascrivi = no» nel file delle regole non si toccano."));
+                ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, L.T("Crea solo i mancanti"),
+                    L.T("Gli abachi che esistono già restano come sono."));
+                TaskDialogResult choice = ask.Show();
+                if (choice != TaskDialogResult.CommandLink1 && choice != TaskDialogResult.CommandLink2) return Result.Cancelled;
+                bool onlyMissing = choice == TaskDialogResult.CommandLink2;
 
                 var log = new List<string>();
                 ViewSchedule first = null;
@@ -62,7 +71,7 @@ namespace ModelProof
                     {
                         try
                         {
-                            ViewSchedule v = ScheduleBuilder.Create(doc, a, log);
+                            ViewSchedule v = ScheduleBuilder.Create(doc, a, log, onlyMissing);
                             if (first == null && v != null) first = v;
                         }
                         catch (Exception ex)
@@ -101,11 +110,11 @@ namespace ModelProof
             { "Level", "ROOM_LEVEL_ID" }, { "Number", "ROOM_NUMBER" }, { "Name", "ROOM_NAME" }, { "Count", "" }
         };
 
-        public static ViewSchedule Create(Document doc, ScheduleSpec a, List<string> log)
+        public static ViewSchedule Create(Document doc, ScheduleSpec a, List<string> log, bool onlyMissing)
         {
             ViewSchedule existing = new FilteredElementCollector(doc).OfClass(typeof(ViewSchedule)).Cast<ViewSchedule>()
                 .FirstOrDefault(s => string.Equals(s.Name, a.Name, StringComparison.Ordinal));
-            if (existing != null && !a.Overwrite) { log.Add(L.F("[{0}] esiste già: non toccato.", a.Name)); return existing; }
+            if (existing != null && (onlyMissing || !a.Overwrite)) { log.Add(L.F("[{0}] esiste già: non toccato.", a.Name)); return existing; }
 
             ElementId cat = ElementId.InvalidElementId;
             if (a.Kind == "categoria")

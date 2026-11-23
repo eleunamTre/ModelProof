@@ -78,7 +78,19 @@ namespace ModelProof
             List<long> ids = RevitUtil.CategoryIds(name);
             long id = c.Id.Value;
             bool same = ids.Contains(id) || string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase);
-            if (!same) return false;
+            if (!same)
+            {
+                // categorie che Revit separa ma che fanno parte della stessa cosa: cornici e scanalature dei muri sono
+                // muri; dal 2024 il terreno è Toposolid invece di Topography
+                List<string> also;
+                if (!Compatible.TryGetValue(name, out also)) return false;
+                foreach (string ost in also)
+                {
+                    BuiltInCategory bic;
+                    if (Enum.TryParse(ost, out bic) && (long)bic == id) return true;
+                }
+                return false;
+            }
             var wt = type as WallType;
             if (wt == null || id != (long)BuiltInCategory.OST_Walls) return true;
             bool curtainName = name.StartsWith("Curtain Wall", StringComparison.OrdinalIgnoreCase);
@@ -86,6 +98,13 @@ namespace ModelProof
             try { curtainType = wt.Kind == WallKind.Curtain; } catch { }
             return curtainName == curtainType;
         }
+
+        private static readonly Dictionary<string, List<string>> Compatible = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Walls", new List<string> { "OST_Cornices", "OST_Reveals" } },
+            { "Topography", new List<string> { "OST_Toposolid" } },
+            { "Toposolid", new List<string> { "OST_Topography" } }
+        };
 
         /// <summary>Nome da mostrare per la categoria di un tipo (le facciate continue come «Walls (Curtain Wall)»).</summary>
         private static string CategoryText(Category c, ElementType type)
