@@ -168,12 +168,18 @@ namespace ModelProof
                     if (tid == null || tid == ElementId.InvalidElementId) continue;
                     if (e is ImportInstance) continue;                             // DWG/DXF importati o collegati: non sono elementi del modello
                     var fi = e as FamilyInstance;
-                    if (fi != null && fi.SuperComponent != null) continue;          // componenti annidati
                     if (e.DesignOption != null && !e.DesignOption.IsPrimary) continue; // opzioni di progetto secondarie
-                    if (e.get_BoundingBox(null) == null) continue;                 // senza geometria
                     var type = _doc.GetElement(tid) as ElementType;
                     if (type == null) continue;
-                    _instances.Add(e);
+                    // famiglie annidate condivise (es. un maniglione dentro un sanitario): non sono istanze da controllare
+                    // (PBS, ZBS… stanno sulla famiglia che le contiene), ma i loro tipi e famiglie sono nel progetto e
+                    // si controllano come gli altri
+                    bool nested = fi != null && fi.SuperComponent != null;
+                    if (!nested)
+                    {
+                        if (e.get_BoundingBox(null) == null) continue;             // senza geometria
+                        _instances.Add(e);
+                    }
                     long t = tid.Value;
                     if (!_types.ContainsKey(t))
                     {

@@ -237,3 +237,7 @@ ModelProof – registro delle modifiche
 
 30. Excel: larghezza delle colonne adattata al testo più lungo (come il doppio clic sul bordo in Excel), al massimo
    120 caratteri; le colonne da compilare a mano tengono una larghezza minima.
+
+31. Famiglie annidate condivise (es. maniglioni dentro i sanitari): restano fuori dai controlli sulle istanze, ma i loro
+   tipi e famiglie si controllano come gli altri (nome della famiglia e del tipo, Type Mark, codice categoria, IFC…);
+   prima mancavano del tutto (segnalazione dell'utente del 23/11 sui Casework CA.ph).
