@@ -195,6 +195,13 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["aggiornato"] = "updated";
+            d["creato"] = "created";
+            d["[{0}] {1}: {2} campi."] = "[{0}] {1}: {2} fields.";
+            d["[{0}] {1}: {2} campi; non trovati: {3}."] = "[{0}] {1}: {2} fields; not found: {3}.";
+            d["[{0}] tipo di abaco cambiato: ricreato, va rimesso sulle tavole dove si trovava."] = "[{0}] schedule kind changed: recreated, it must be placed again on the sheets where it was.";
+            d["Non riesco a scrivere «{0}»: forse è aperto in Excel. Chiudilo o scegli un altro nome e riprova."] = "Cannot write «{0}»: it may be open in Excel. Close it or choose another name and try again.";
+            d["Non riesco a scrivere «{0}»: file in sola lettura o cartella senza permessi."] = "Cannot write «{0}»: read-only file or folder without permissions.";
             d["classe IFC «{0}» non prevista per «{1}» (previste: {2})"] = "IFC class «{0}» not expected for «{1}» (expected: {2})";
             d["ABACHI"] = "SCHEDULES";
             d["Crea nel modello gli abachi di controllo descritti nel file delle regole (sezioni [ABACO nome]), per verificare a mano parametri, IFC, materiali e locali. Chiede conferma; si annulla con Ctrl+Z."] = "Creates in the model the check schedules described in the rules file ([ABACO name] sections), to check parameters, IFC, materials and rooms by hand. Asks for confirmation; undo with Ctrl+Z.";
@@ -205,8 +212,6 @@ namespace ModelProof
             d["Il file di configurazione non ha abachi: aggiungi una sezione [ABACO nome]."] = "The configuration file has no schedules: add an [ABACO name] section.";
             d["ModelProof – abachi di controllo"] = "ModelProof – check schedules";
             d["[{0}] categoria «{1}» sconosciuta: abaco multicategoria."] = "[{0}] unknown category «{1}»: multi-category schedule.";
-            d["[{0}] creato: {1} campi."] = "[{0}] created: {1} fields.";
-            d["[{0}] creato: {1} campi; non trovati: {2}."] = "[{0}] created: {1} fields; not found: {2}.";
             d["[{0}] errore: {1}"] = "[{0}] error: {1}";
             d["[{0}] esiste già: non toccato."] = "[{0}] already exists: left unchanged.";
             d["[{0}] nessun campo che inizia con «{1}»."] = "[{0}] no field starting with «{1}».";

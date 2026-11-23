@@ -397,7 +397,7 @@ namespace ModelProof
                 catch (Exception ex)
                 {
                     Log.Error("Esporta CSV", ex);
-                    MessageBox.Show(this, ex.Message, "ModelProof", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(this, ex is IOException ? L.F("Non riesco a scrivere «{0}»: forse è aperto in Excel. Chiudilo o scegli un altro nome e riprova.", Path.GetFileName(dlg.FileName)) : ex.Message, "ModelProof", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
         }

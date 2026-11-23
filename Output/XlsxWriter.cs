@@ -60,9 +60,33 @@ namespace ModelProof
             return candidate;
         }
 
+        /// <summary>
+        /// Scrive prima un file temporaneo accanto e poi sostituisce quello esistente: se il file è aperto (es. in Excel)
+        /// quello vecchio resta intatto e si ha un messaggio chiaro.
+        /// </summary>
         public void Save(string path)
         {
-            if (File.Exists(path)) File.Delete(path);
+            string tmp = path + ".tmp";
+            try
+            {
+                WriteTo(tmp);
+                if (File.Exists(path)) File.Delete(path);
+                File.Move(tmp, path);
+            }
+            catch (IOException)
+            {
+                try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+                throw new IOException(L.F("Non riesco a scrivere «{0}»: forse è aperto in Excel. Chiudilo o scegli un altro nome e riprova.", Path.GetFileName(path)));
+            }
+            catch (UnauthorizedAccessException)
+            {
+                try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+                throw new IOException(L.F("Non riesco a scrivere «{0}»: file in sola lettura o cartella senza permessi.", Path.GetFileName(path)));
+            }
+        }
+
+        private void WriteTo(string path)
+        {
             using (FileStream fs = File.Create(path))
             using (var zip = new ZipArchive(fs, ZipArchiveMode.Create))
             {

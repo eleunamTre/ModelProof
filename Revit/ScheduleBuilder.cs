@@ -105,11 +105,7 @@ namespace ModelProof
         {
             ViewSchedule existing = new FilteredElementCollector(doc).OfClass(typeof(ViewSchedule)).Cast<ViewSchedule>()
                 .FirstOrDefault(s => string.Equals(s.Name, a.Name, StringComparison.Ordinal));
-            if (existing != null)
-            {
-                if (!a.Overwrite) { log.Add(L.F("[{0}] esiste già: non toccato.", a.Name)); return existing; }
-                doc.Delete(existing.Id);
-            }
+            if (existing != null && !a.Overwrite) { log.Add(L.F("[{0}] esiste già: non toccato.", a.Name)); return existing; }
 
             ElementId cat = ElementId.InvalidElementId;
             if (a.Kind == "categoria")
@@ -118,8 +114,35 @@ namespace ModelProof
                 if (ids.Count > 0) cat = new ElementId(ids[0]);
                 else log.Add(L.F("[{0}] categoria «{1}» sconosciuta: abaco multicategoria.", a.Name, a.Category));
             }
-            ViewSchedule v = a.Kind == "computo materiali" ? ViewSchedule.CreateMaterialTakeoff(doc, cat) : ViewSchedule.CreateSchedule(doc, cat);
-            v.Name = a.Name;
+            bool takeoff = a.Kind == "computo materiali";
+
+            ViewSchedule v = null;
+            bool updated = false;
+            if (existing != null)
+            {
+                // stesso tipo di abaco: si rifà il contenuto dell'abaco esistente, così resta dov'è sulle tavole;
+                // tipo diverso: si elimina e si ricrea (se era su una tavola va rimesso a mano)
+                ScheduleDefinition old = existing.Definition;
+                if (old.CategoryId == cat && old.IsMaterialTakeoff == takeoff)
+                {
+                    old.ClearSortGroupFields();
+                    while (old.GetFieldCount() > 0) old.RemoveField(0);
+                    v = existing;
+                    updated = true;
+                }
+                else
+                {
+                    bool onSheet = new FilteredElementCollector(doc).OfClass(typeof(ScheduleSheetInstance)).Cast<ScheduleSheetInstance>()
+                        .Any(s => s.ScheduleId == existing.Id);
+                    doc.Delete(existing.Id);
+                    if (onSheet) log.Add(L.F("[{0}] tipo di abaco cambiato: ricreato, va rimesso sulle tavole dove si trovava.", a.Name));
+                }
+            }
+            if (v == null)
+            {
+                v = takeoff ? ViewSchedule.CreateMaterialTakeoff(doc, cat) : ViewSchedule.CreateSchedule(doc, cat);
+                v.Name = a.Name;
+            }
             ScheduleDefinition def = v.Definition;
             IList<SchedulableField> available = def.GetSchedulableFields();
 
@@ -160,9 +183,10 @@ namespace ModelProof
                 if (o.Footer) { sg.ShowFooterTitle = true; sg.ShowFooterCount = true; }
                 def.AddSortGroupField(sg);
             }
+            string done = updated ? L.T("aggiornato") : L.T("creato");
             log.Add(missing.Count == 0
-                ? L.F("[{0}] creato: {1} campi.", a.Name, added.Count)
-                : L.F("[{0}] creato: {1} campi; non trovati: {2}.", a.Name, added.Count, string.Join(", ", missing)));
+                ? L.F("[{0}] {1}: {2} campi.", a.Name, done, added.Count)
+                : L.F("[{0}] {1}: {2} campi; non trovati: {3}.", a.Name, done, added.Count, string.Join(", ", missing)));
             return v;
         }
 

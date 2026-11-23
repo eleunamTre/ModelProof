@@ -201,3 +201,10 @@ ModelProof – registro delle modifiche
      (o del campo indicato) deve essere una di queste. Si confronta senza maiuscole, senza «Type» finale e senza il
      tipo predefinito dopo il punto. Codici senza classi: non controllati; valore vuoto: lo segnala la regola dei
      parametri IFC.
+
+23. Abachi ed Excel già esistenti:
+   - «Crea abachi» con un abaco già presente e «sovrascrivi = si»: se il tipo di abaco è lo stesso (categoria e
+     computo materiali) si rifanno campi e ordinamenti dell'abaco esistente, che resta sulle tavole dov'era; se il tipo
+     è cambiato si elimina e si ricrea e, se era su una tavola, il riepilogo lo dice. Con «sovrascrivi = no» non si tocca;
+   - Excel: si scrive prima un file temporaneo accanto e poi si sostituisce quello esistente; se il file è aperto (es.
+     in Excel) il vecchio resta intatto e compare un messaggio chiaro. Stesso messaggio per il CSV.
