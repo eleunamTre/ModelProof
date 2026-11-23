@@ -620,6 +620,7 @@ namespace ModelProof
                 case "categoria ammessa": CheckAllowedCategory(rule, rr); break;
                 case "funzione muri": CheckWallFunction(rule, rr); break;
                 case "classe ifc": CheckIfcClass(rule, rr); break;
+                case "coerenza nomi": CheckNameConsistency(rule, rr); break;
                 default: rr.Note = L.T("controllo non ancora disponibile in questa versione del plugin"); break;
             }
         }

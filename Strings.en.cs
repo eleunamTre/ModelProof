@@ -195,6 +195,8 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["{0}: struttura «{1}» come {2} tipi su {3}"] = "{0}: structure «{1}» like {2} types out of {3}";
+            d["{0}: struttura del nome «{1}» diversa da quella degli altri tipi «{2}» ({3} su {4}, es. «{5}»)"] = "{0}: name structure «{1}» differs from the other types «{2}» ({3} out of {4}, e.g. «{5}»)";
             d["stesso nome ma GUID diverso da quello del parametro di progetto ({0}): compilato su {1} elementi o tipi delle famiglie {2}. Negli abachi e nell'IFC si vede solo il parametro di progetto: va sostituito nelle famiglie"] = "same name but GUID different from the project parameter ({0}): filled in on {1} elements or types of families {2}. Schedules and IFC only show the project parameter: it must be replaced in the families";
             d["stesso nome ma GUID diverso ({0}): compilato su {1} elementi o tipi delle famiglie {2}"] = "same name but different GUID ({0}): filled in on {1} elements or types of families {2}";
             d["Falso positivo"] = "False positive";

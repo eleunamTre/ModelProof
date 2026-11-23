@@ -456,6 +456,84 @@ namespace ModelProof
             }
         }
 
+        // ------------------------------------------------------------------ coerenza dei nomi tra tipi analoghi
+
+        private static readonly Regex RxDim = new Regex(@"^\d+(?:[.,]\d+)?(?:[xX×]\d+(?:[.,]\d+)?)+$", RegexOptions.CultureInvariant);
+        private static readonly Regex RxNum = new Regex(@"^\d+(?:[.,]\d+)?$", RegexOptions.CultureInvariant);
+        private static readonly Regex RxCod = new Regex(@"^[A-Z]{1,3}$", RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Struttura di un nome: le parti tra separatori (_ - . spazio) diventano DIM (misure come 85x214), N (numero),
+        /// COD (1-3 lettere maiuscole), TXT (altro testo) o «·» (parte vuota); i separatori restano.
+        /// Es. «AL_85x214» → «COD_DIM», «AC_95x210_REI» → «COD_DIM_COD».
+        /// </summary>
+        public static string NameShape(string name)
+        {
+            var sb = new System.Text.StringBuilder();
+            var tok = new System.Text.StringBuilder();
+            Action flush = () =>
+            {
+                string s = tok.ToString();
+                sb.Append(s.Length == 0 ? "·" : RxDim.IsMatch(s) ? "DIM" : RxNum.IsMatch(s) ? "N" : RxCod.IsMatch(s) ? "COD" : "TXT");
+                tok.Clear();
+            };
+            foreach (char ch in name ?? "")
+            {
+                if (ch == '_' || ch == '-' || ch == '.' || ch == ' ') { flush(); sb.Append(ch); }
+                else tok.Append(ch);
+            }
+            flush();
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Avviso «da attenzionare», non una regola: tra i tipi dello stesso gruppo (parti del nome indicate in
+        /// «raggruppa», es. CAT fu: stessa categoria e funzione) il campo (di base il nome del tipo) dovrebbe avere la
+        /// stessa struttura. Si cerca la struttura più comune del gruppo e si segnalano i tipi che ne hanno un'altra
+        /// (es. le dimensioni in un altro punto, o mancanti). Solo gruppi con almeno «minimo» tipi (di base 3) e una
+        /// struttura prevalente su almeno «soglia» % (di base 60).
+        /// </summary>
+        private void CheckNameConsistency(Rule rule, RuleResult rr)
+        {
+            string field = rule.Fields.Count > 0 ? rule.Fields[0] : "Nome tipo";
+            var parts = rule.Get("raggruppa", "CAT fu").Split(new[] { ' ', ',', ';', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            int min = Column(rule, "minimo", 3);
+            int threshold = Column(rule, "soglia", 60);
+            var groups = new Dictionary<string, List<Tuple<Target, string, string>>>(StringComparer.Ordinal);
+            foreach (Target t in Targets("tipi"))
+            {
+                string text;
+                Match m = TypeNameMatch(t.Type, out text);
+                string key;
+                if (m.Success && parts.All(p => m.Groups[p].Success)) key = string.Join(".", parts.Select(p => m.Groups[p].Value));
+                else continue;   // nome fuori formato: lo segnala la regola del nome
+                bool exists;
+                string value = ReadField("tipi", t, field, out exists);
+                if (!exists || string.IsNullOrWhiteSpace(value)) continue;
+                List<Tuple<Target, string, string>> l;
+                if (!groups.TryGetValue(key, out l)) groups[key] = l = new List<Tuple<Target, string, string>>();
+                l.Add(Tuple.Create(t, value, NameShape(value)));
+            }
+            foreach (var kv in groups.OrderBy(g => g.Key, StringComparer.Ordinal))
+            {
+                var items = kv.Value;
+                if (items.Count < min) continue;
+                var best = items.GroupBy(x => x.Item3).OrderByDescending(g => g.Count()).First();
+                if (best.Count() * 100 < threshold * items.Count) continue;   // nessuna struttura prevalente: niente da dire
+                string example = best.First().Item2;
+                foreach (var x in items)
+                {
+                    rr.Checked++;
+                    if (x.Item3 == best.Key)
+                        rr.Issues.Add(MakeOkFor(rule, x.Item1, field, x.Item2, L.F("{0}: struttura «{1}» come {2} tipi su {3}", kv.Key, best.Key, best.Count(), items.Count)));
+                    else
+                        rr.Issues.Add(TypeIssue(rule, false, x.Item1, field, x.Item2,
+                            L.F("{0}: struttura del nome «{1}» diversa da quella degli altri tipi «{2}» ({3} su {4}, es. «{5}»)",
+                                kv.Key, x.Item3, best.Key, best.Count(), items.Count, example)));
+                }
+            }
+        }
+
         /// <summary>Classe IFC senza tipo predefinito («.SOLIDWALL») e senza «Type» finale.</summary>
         private static string IfcBase(string s)
         {
