@@ -163,6 +163,7 @@ namespace ModelProof
 
             // assegnati alle categorie del progetto (condivisi o no)
             var bound = new HashSet<string>(StringComparer.Ordinal);
+            var boundGuid = new Dictionary<string, Guid>(StringComparer.Ordinal);   // GUID del parametro di progetto
             var boundProject = new HashSet<string>(StringComparer.Ordinal);
             DefinitionBindingMapIterator it = _doc.ParameterBindings.ForwardIterator();
             while (it.MoveNext())
@@ -176,19 +177,26 @@ namespace ModelProof
                 int cats = 1;
                 try { var b = it.Current as ElementBinding; if (b != null) cats = b.Categories.Size; } catch { }
                 if (cats == 0) continue;
-                if (sharedIds.Contains(def.Id.Value)) bound.Add(n); else boundProject.Add(n);
+                if (sharedIds.Contains(def.Id.Value))
+                {
+                    bound.Add(n);
+                    try { var sp = _doc.GetElement(def.Id) as SharedParameterElement; if (sp != null) boundGuid[n] = sp.GuidValue; } catch { }
+                }
+                else boundProject.Add(n);
             }
 
-            // compilati su elementi o tipi (anche se arrivano solo dalle famiglie)
+            // compilati su elementi o tipi (anche se arrivano solo dalle famiglie); per ogni GUID anche le famiglie che lo
+            // compilano e un elemento da mostrare (prima le istanze), per i nomi doppi
             var filled = new Dictionary<Guid, int>();
-            if (byGuid.Count > 0 && useFilled)
+            var guidFamilies = new Dictionary<Guid, SortedSet<string>>();
+            var guidElement = new Dictionary<Guid, Element>();
+            if (byGuid.Count > 0)
                 foreach (bool types in new[] { false, true })
                 {
                     var coll = new FilteredElementCollector(_doc);
                     IEnumerable<Element> els = types ? coll.WhereElementIsElementType() : coll.WhereElementIsNotElementType();
                     foreach (Element el in els)
                     {
-                        if (filled.Count == byGuid.Count) break;
                         try
                         {
                             // solo elementi e tipi del modello (non informazioni di progetto, viste, tavole…)
@@ -199,6 +207,11 @@ namespace ModelProof
                                 Guid g = p.GUID;
                                 if (!byGuid.ContainsKey(g) || !HasValue(p)) continue;
                                 int c; filled.TryGetValue(g, out c); filled[g] = c + 1;
+                                SortedSet<string> fams;
+                                if (!guidFamilies.TryGetValue(g, out fams)) guidFamilies[g] = fams = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
+                                string fam = FamilyLabel(el);
+                                if (fam.Length > 0 && fams.Count < 6) fams.Add(fam);
+                                if (!guidElement.ContainsKey(g)) guidElement[g] = el;
                             }
                         }
                         catch { }
@@ -208,6 +221,7 @@ namespace ModelProof
             foreach (var kv in filled) { int c; filledByName.TryGetValue(byGuid[kv.Key], out c); filledByName[byGuid[kv.Key]] = c + kv.Value; }
 
             var inUse = new SortedSet<string>((useBound ? bound : Enumerable.Empty<string>()).Concat(useFilled ? filledByName.Keys : Enumerable.Empty<string>()), StringComparer.Ordinal);
+            if (!useFilled) filledByName.Clear();   // con «assegnati» i conteggi non servono nei messaggi
             foreach (string n in inUse)
             {
                 rr.Checked++;
@@ -216,13 +230,33 @@ namespace ModelProof
                 int c;
                 if (filledByName.TryGetValue(n, out c)) origin.Add(L.F("compilato su {0} elementi o tipi", c));
                 string where = string.Join(", ", origin);
-                int same = byGuid.Values.Count(x => x == n);
                 if (!wanted.Contains(n))
                     rr.Issues.Add(ControlIssue(rule, error, L.T("Parametro"), n, L.F("parametro condiviso in uso ({0}) non presente nell'elenco [{1}]", where, list.Name)));
-                else if (same > 1)
-                    rr.Issues.Add(ControlIssue(rule, false, L.T("Parametro"), n, L.F("{0} parametri condivisi con lo stesso nome (GUID diversi)", same)));
                 else
                     rr.Issues.Add(OkRow(rule, _info.FileName, _info.RoleText, L.T("Parametro"), n, where));
+
+                // stesso nome, GUID diversi: conta solo se più GUID sono davvero usati (assegnato o compilato). Quello
+                // «giusto» è il GUID del parametro di progetto (o il più compilato); gli altri arrivano da famiglie fatte
+                // con un altro file dei parametri condivisi e i loro valori non compaiono negli abachi né nell'IFC
+                var used = byGuid.Where(kv => kv.Value == n && (filled.ContainsKey(kv.Key) || (boundGuid.ContainsKey(n) && boundGuid[n] == kv.Key)))
+                                 .Select(kv => kv.Key).ToList();
+                if (used.Count < 2) continue;
+                Guid main;
+                bool hasMain = boundGuid.TryGetValue(n, out main) && used.Contains(main);
+                if (!hasMain) main = used.OrderByDescending(g => { int k; filled.TryGetValue(g, out k); return k; }).First();
+                foreach (Guid g in used.Where(x => x != main))
+                {
+                    int k; filled.TryGetValue(g, out k);
+                    SortedSet<string> fams; guidFamilies.TryGetValue(g, out fams);
+                    Element show; guidElement.TryGetValue(g, out show);
+                    string famText = fams != null && fams.Count > 0 ? string.Join(", ", fams) + (fams.Count >= 6 ? ", …" : "") : "?";
+                    string msg = hasMain
+                        ? L.F("stesso nome ma GUID diverso da quello del parametro di progetto ({0}): compilato su {1} elementi o tipi delle famiglie {2}. Negli abachi e nell'IFC si vede solo il parametro di progetto: va sostituito nelle famiglie", g, k, famText)
+                        : L.F("stesso nome ma GUID diverso ({0}): compilato su {1} elementi o tipi delle famiglie {2}", g, k, famText);
+                    Issue i = ControlIssue(rule, false, L.T("Parametro"), n, msg, show is ElementType ? null : show);
+                    if (show is ElementType) { i.FamilyType = FamilyLabel(show); i.ElementId = show.Id.Value; }
+                    rr.Issues.Add(i);
+                }
             }
             // parametri di progetto NON condivisi con il nome di un parametro dell'elenco
             foreach (string n in boundProject.Where(x => wanted.Contains(x)))
@@ -230,6 +264,19 @@ namespace ModelProof
                 rr.Checked++;
                 rr.Issues.Add(ControlIssue(rule, error, L.T("Parametro"), n, L.T("parametro di progetto NON condiviso: nell'elenco è un parametro condiviso")));
             }
+        }
+
+        /// <summary>Famiglia (o tipo di sistema) di un elemento o di un tipo, per i messaggi.</summary>
+        private string FamilyLabel(Element el)
+        {
+            try
+            {
+                var type = el as ElementType ?? _doc.GetElement(el.GetTypeId()) as ElementType;
+                if (type == null) return "";
+                var fs = type as FamilySymbol;
+                return fs != null && fs.Family != null ? fs.Family.Name : (type.FamilyName ?? "") + " : " + type.Name;
+            }
+            catch { return ""; }
         }
 
         private static bool HasValue(Parameter p)

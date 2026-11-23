@@ -241,3 +241,8 @@ ModelProof – registro delle modifiche
 31. Famiglie annidate condivise (es. maniglioni dentro i sanitari): restano fuori dai controlli sulle istanze, ma i loro
    tipi e famiglie si controllano come gli altri (nome della famiglia e del tipo, Type Mark, codice categoria, IFC…);
    prima mancavano del tutto (segnalazione dell'utente del 23/11 sui Casework CA.ph).
+
+32. Parametri condivisi con lo stesso nome e GUID diversi: si segnalano solo se più GUID sono davvero usati
+   (assegnato come parametro di progetto o compilato); il GUID «giusto» è quello del parametro di progetto (o il più
+   compilato) e per ogni altro GUID un avviso dice quante volte è compilato, in quali famiglie (fino a 6) e mostra un
+   elemento: quei valori non compaiono negli abachi né nell'IFC, il parametro va sostituito nelle famiglie.

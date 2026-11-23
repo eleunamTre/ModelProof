@@ -195,6 +195,8 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["stesso nome ma GUID diverso da quello del parametro di progetto ({0}): compilato su {1} elementi o tipi delle famiglie {2}. Negli abachi e nell'IFC si vede solo il parametro di progetto: va sostituito nelle famiglie"] = "same name but GUID different from the project parameter ({0}): filled in on {1} elements or types of families {2}. Schedules and IFC only show the project parameter: it must be replaced in the families";
+            d["stesso nome ma GUID diverso ({0}): compilato su {1} elementi o tipi delle famiglie {2}"] = "same name but different GUID ({0}): filled in on {1} elements or types of families {2}";
             d["Falso positivo"] = "False positive";
             d["Confermato"] = "Confirmed";
             d["Corretto"] = "Fixed";
@@ -247,7 +249,6 @@ namespace ModelProof
             d["parametro di progetto"] = "project parameter";
             d["compilato su {0} elementi o tipi"] = "filled in on {0} elements or types";
             d["parametro condiviso in uso ({0}) non presente nell'elenco [{1}]"] = "shared parameter in use ({0}) not in list [{1}]";
-            d["{0} parametri condivisi con lo stesso nome (GUID diversi)"] = "{0} shared parameters with the same name (different GUIDs)";
             d["parametro di progetto NON condiviso: nell'elenco è un parametro condiviso"] = "project parameter NOT shared: in the list it is a shared parameter";
             d["Scegli gli elementi dei modelli collegati (clic o riquadro), poi «Fine» – Esc per annullare"] = "Pick the elements of linked models (click or window), then «Finish» – Esc to cancel";
             d["ModelProof – Interroga collegamento"] = "ModelProof – Query link";
