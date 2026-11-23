@@ -252,3 +252,8 @@ ModelProof – registro delle modifiche
    classificate DIM = misure come 85x214, N = numero, COD = 1-3 maiuscole, TXT = altro, · = vuota) e si segnalano i
    tipi con una struttura diversa da quella prevalente del gruppo (es. dimensioni in un altro punto o assenti). Solo
    gruppi con almeno «minimo» tipi (3) e una struttura prevalente su almeno «soglia» % (60).
+
+34. Circuiti elettrici nei controlli dei sistemi: l'oggetto «tipi di sistema impiantistico» comprende anche i circuiti
+   (nome del circuito, livelli degli elementi collegati per la coerenza). Funzione muri, locali ai lati: 5 punti lungo il
+   muro a due altezze, in tutte le fasi che hanno locali, basta un punto per lato (prima un solo punto a metà muro e
+   solo l'ultima fase: muri con due locali per lato visti con un locale solo).

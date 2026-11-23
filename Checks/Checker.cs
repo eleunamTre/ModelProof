@@ -467,6 +467,25 @@ namespace ModelProof
                             if (st == null) continue;
                             list.Add(new Target { El = st, Type = st, Levels = kv.Value.Values.ToList(), Id = kv.Key, ShowId = first[kv.Key], Category = CatName(st), FamilyType = st.Name });
                         }
+                        // circuiti elettrici: non hanno un tipo di sistema, si controllano loro (nome del circuito) con i
+                        // livelli degli elementi collegati
+                        foreach (Autodesk.Revit.DB.Electrical.ElectricalSystem es in new FilteredElementCollector(_doc)
+                                     .OfClass(typeof(Autodesk.Revit.DB.Electrical.ElectricalSystem)).Cast<Autodesk.Revit.DB.Electrical.ElectricalSystem>())
+                        {
+                            try
+                            {
+                                var lv = new Dictionary<long, Level>();
+                                long show = -1;
+                                foreach (Element m in es.Elements)
+                                {
+                                    if (show < 0) show = m.Id.Value;
+                                    Level l = RevitUtil.LevelOf(m);
+                                    if (l != null) lv[l.Id.Value] = l;
+                                }
+                                list.Add(new Target { El = es, Type = null, Levels = lv.Values.ToList(), Id = es.Id.Value, ShowId = show, Category = CatName(es), FamilyType = es.Name ?? "" });
+                            }
+                            catch { }
+                        }
                     }
                     break;
             }

@@ -662,7 +662,25 @@ namespace ModelProof
             catch { return null; }
         }
 
-        /// <summary>Lati del muro (0, 1 o 2) che hanno un locale, a metà lunghezza e a 1 m dalla base; -1 se non leggibile.</summary>
+        private List<Phase> _roomPhases;
+
+        /// <summary>Fasi in cui esistono locali (i locali si cercano in tutte, non solo nell'ultima).</summary>
+        private List<Phase> RoomPhases()
+        {
+            if (_roomPhases != null) return _roomPhases;
+            var ids = new HashSet<long>();
+            foreach (Room r in new FilteredElementCollector(_doc).OfCategory(BuiltInCategory.OST_Rooms).WhereElementIsNotElementType().OfType<Room>())
+                try { Parameter p = r.get_Parameter(BuiltInParameter.ROOM_PHASE); if (p != null) ids.Add(p.AsElementId().Value); } catch { }
+            _roomPhases = new List<Phase>();
+            foreach (long id in ids) { var ph = _doc.GetElement(new ElementId(id)) as Phase; if (ph != null) _roomPhases.Add(ph); }
+            return _roomPhases;
+        }
+
+        /// <summary>
+        /// Lati del muro (0, 1 o 2) che hanno almeno un locale: si guardano 5 punti lungo il muro (15-85% della
+        /// lunghezza) a 1 m dalla base e a metà altezza, appena oltre lo spessore, in tutte le fasi con locali.
+        /// Basta un punto con un locale perché il lato conti (muri con più locali per lato). -1 se non leggibile.
+        /// </summary>
         private int RoomSides(Wall w, Phase phase)
         {
             try
@@ -670,19 +688,37 @@ namespace ModelProof
                 var lc = w.Location as LocationCurve;
                 BoundingBoxXYZ bb = w.get_BoundingBox(null);
                 if (lc == null || lc.Curve == null || bb == null) return -1;
-                XYZ mid = lc.Curve.Evaluate(0.5, true);
-                XYZ n = w.Orientation;
+                Curve c = lc.Curve;
                 double off = w.Width / 2.0 + 1.0;                                 // oltre lo spessore, 1 piede
-                double z = bb.Min.Z + Math.Min(1.0 / 0.3048, (bb.Max.Z - bb.Min.Z) / 2.0);
-                var p = new XYZ(mid.X, mid.Y, z);
-                int sides = 0;
-                foreach (double s in new[] { 1.0, -1.0 })
+                double h = bb.Max.Z - bb.Min.Z;
+                double[] zs = { bb.Min.Z + Math.Min(1.0 / 0.3048, h / 2.0), bb.Min.Z + h / 2.0 };
+                List<Phase> phases = RoomPhases();
+                if (phases.Count == 0 && phase != null) phases = new List<Phase> { phase };
+                var found = new bool[2];
+                foreach (double u in new[] { 0.15, 0.35, 0.5, 0.65, 0.85 })
                 {
-                    XYZ q = p + n * (off * s);
-                    Room r = phase != null ? _doc.GetRoomAtPoint(q, phase) : _doc.GetRoomAtPoint(q);
-                    if (r != null) sides++;
+                    Transform d = c.ComputeDerivatives(u, true);
+                    XYZ tan = d.BasisX.Normalize();
+                    XYZ n = new XYZ(-tan.Y, tan.X, 0);
+                    if (n.IsZeroLength()) continue;
+                    n = n.Normalize();
+                    XYZ m = d.Origin;
+                    for (int side = 0; side < 2; side++)
+                    {
+                        if (found[side]) continue;
+                        double s = side == 0 ? 1 : -1;
+                        foreach (double z in zs)
+                        {
+                            XYZ q = new XYZ(m.X, m.Y, z) + n * (off * s);
+                            bool hit = false;
+                            if (phases.Count == 0) hit = _doc.GetRoomAtPoint(q) != null;
+                            else foreach (Phase ph in phases) if (_doc.GetRoomAtPoint(q, ph) != null) { hit = true; break; }
+                            if (hit) { found[side] = true; break; }
+                        }
+                    }
+                    if (found[0] && found[1]) break;
                 }
-                return sides;
+                return (found[0] ? 1 : 0) + (found[1] ? 1 : 0);
             }
             catch { return -1; }
         }
