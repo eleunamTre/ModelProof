@@ -108,7 +108,6 @@ namespace ModelProof
             d["Nome"] = "Name";
             d["Note"] = "Notes";
             d["Prima scegli il file di configurazione con «Regole del progetto»."] = "First choose the configuration file with «Project rules».";
-            d["Problema"] = "Problem";
             d["Questo progetto non è ancora stato verificato: usa «Verifica modello»."] = "This project has not been checked yet: use «Check model».";
             d["Quota"] = "Elevation";
             d["Regola"] = "Rule";
@@ -196,6 +195,20 @@ namespace ModelProof
             d["controllo"] = "check";
             d["formato"] = "format";
             d["non in elenco"] = "not in list";
+            d["Stato"] = "Status";
+            d["livello"] = "level";
+            d["nome"] = "name";
+            d["nome del tipo"] = "type name";
+            d["nome della famiglia"] = "family name";
+            d["locale"] = "room";
+            d["nome del file"] = "file name";
+            d["Nome tipo"] = "Type Name";
+            d["Nome famiglia"] = "Family Name";
+            d["parametro di progetto"] = "project parameter";
+            d["compilato su {0} elementi o tipi"] = "filled in on {0} elements or types";
+            d["parametro condiviso in uso ({0}) non presente nell'elenco [{1}]"] = "shared parameter in use ({0}) not in list [{1}]";
+            d["{0} parametri condivisi con lo stesso nome (GUID diversi)"] = "{0} shared parameters with the same name (different GUIDs)";
+            d["parametro di progetto NON condiviso: nell'elenco è un parametro condiviso"] = "project parameter NOT shared: in the list it is a shared parameter";
             d["Scegli gli elementi dei modelli collegati (clic o riquadro), poi «Fine» – Esc per annullare"] = "Pick the elements of linked models (click or window), then «Finish» – Esc to cancel";
             d["ModelProof – Interroga collegamento"] = "ModelProof – Query link";
             d["Scegli elementi…"] = "Pick elements…";
@@ -223,8 +236,6 @@ namespace ModelProof
             d["categoria non ammessa per il modello {0} ({1}): ammessa per {2}"] = "category not allowed for model {0} ({1}): allowed for {2}";
             d["categoria non presente nell'elenco [{0}]"] = "category not in list [{0}]";
             d["codice «{0}» non nell'elenco [{1}]"] = "code «{0}» not in list [{1}]";
-            d["condiviso (nelle famiglie)"] = "shared (in families)";
-            d["condiviso, assegnato alle categorie"] = "shared, bound to categories";
             d["discipline del modello {0} non indicate in [MODELLI]"] = "disciplines of model {0} not given in [MODELLI]";
             d["esterno"] = "exterior";
             d["funzione «{0}» non ammessa per {1} (ammesse: {2})"] = "function «{0}» not allowed for {1} (allowed: {2})";
@@ -236,10 +247,6 @@ namespace ModelProof
             d["muro esterno («{0}») con locali da entrambi i lati"] = "exterior wall («{0}») with rooms on both sides";
             d["muro interno («{0}») con un locale da un solo lato"] = "interior wall («{0}») with a room on one side only";
             d["nessuna funzione in elenco per {0}: libera"] = "no function listed for {0}: free";
-            d["parametro condiviso del progetto non presente nell'elenco [{0}]"] = "project shared parameter not in list [{0}]";
-            d["parametro dell'elenco assente nel modello"] = "listed parameter missing from the model";
-            d["parametro di progetto NON condiviso"] = "project parameter NOT shared";
-            d["{0} parametri condivisi con lo stesso nome (GUID diversi: {1})"] = "{0} shared parameters with the same name (different GUIDs: {1})";
             d["«{0}» indica {1}, ma la categoria Revit è {2}"] = "«{0}» indicates {1}, but the Revit category is {2}";
             d["«{0}» nel nome"] = "«{0}» in the name";
             d["«{0}» nel nome indica un muro {1}, ma la Function del tipo è {2}"] = "«{0}» in the name indicates an {1} wall, but the type Function is {2}";
@@ -264,7 +271,6 @@ namespace ModelProof
             d["Coordinate – {0}"] = "Coordinates – {0}";
             d["Coordinate..."] = "Coordinates...";
             d["Nord reale (°)"] = "True north (°)";
-            d["Problemi"] = "Problems";
             d["Rotazione (°)"] = "Rotation (°)";
             d["Ruolo nella verifica"] = "Role in the check";
             d["Scarto (mm)"] = "Offset (mm)";

@@ -57,7 +57,7 @@ namespace ModelProof
                 int c = x.AddSheet(L.T("Coordinate"), new double[] { 8, 40, 14, 13, 13, 10, 13, 13, 10, 12, 14, 14, 11, 11, 70 }, true);
                 x.AddRow(c, XlsxWriter.RowStyle.Header, L.T("Modello"), L.T("File"), L.T("Ruolo nella verifica"),
                     "SP E/W (m)", "SP N/S (m)", "SP Q (m)", "PBP E/W (m)", "PBP N/S (m)", "PBP Q (m)", L.T("Nord reale (°)"),
-                    L.T("Coordinate condivise nel file"), L.T("Collegato in coordinate condivise"), L.T("Scarto (mm)"), L.T("Rotazione (°)"), L.T("Problemi"));
+                    L.T("Coordinate condivise nel file"), L.T("Collegato in coordinate condivise"), L.T("Scarto (mm)"), L.T("Rotazione (°)"), L.T("Stato"));
                 foreach (CoordinateRow r in run.Coordinates)
                     x.AddRow(c, r.Problems.Count > 0 ? XlsxWriter.RowStyle.Error : XlsxWriter.RowStyle.Normal,
                         r.Role, r.File, r.Host ? L.T("file verificato") : L.T("collegamento"),
@@ -77,7 +77,7 @@ namespace ModelProof
             {
                 int sh = x.AddSheet(chapter, new double[] { 28, 9, 12, 8, 34, 11, 22, 40, 22, 26, 70 }, true);
                 x.AddRow(sh, XlsxWriter.RowStyle.Header, L.T("Regola"), L.T("Gravità"), L.T("Tipo"), L.T("Modello"), L.T("File"), "ID", L.T("Categoria"),
-                    L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Problema"));
+                    L.T("Famiglia / tipo"), L.T("Campo"), L.T("Valore"), L.T("Stato"));
                 foreach (RuleResult r in run.Results.Where(r => r.Rule.Chapter == chapter))
                     foreach (Issue i in r.Issues.Where(i => !i.Ok).OrderBy(i => i.Priority))
                         x.AddRow(sh, i.Priority == 0 ? XlsxWriter.RowStyle.Error : i.Priority == 1 ? XlsxWriter.RowStyle.Unlisted : XlsxWriter.RowStyle.Warning,

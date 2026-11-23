@@ -172,3 +172,15 @@ ModelProof – registro delle modifiche
    - copia: doppio clic su una riga o Ctrl+C copiano gli ID delle righe selezionate (separati da virgola, per «Select
      by ID»); clic destro: copia ID, righe o UniqueId; nei parametri Ctrl+C o clic destro copiano valore o parametro e
      valore.
+
+20. Correzioni dopo la prova del 23/11:
+   - la colonna «Problema» (e «Problemi» nelle coordinate) diventa «Stato» / «Status»: riporta anche le righe OK;
+   - parametri condivisi come nello script Dynamo dell'utente: si controllano solo i parametri condivisi IN USO
+     (assegnati ad almeno una categoria del progetto oppure compilati su almeno un elemento o tipo) e ognuno deve essere
+     nell'elenco; i parametri solo registrati nel documento (arrivati con le famiglie e mai usati) non contano e i
+     parametri dell'elenco che il modello non usa non sono un errore. Chiave facoltativa «prefisso». Restano: nome
+     doppio con GUID diversi (avviso) e parametro di progetto non condiviso con il nome di uno dell'elenco (errore);
+   - facciate continue: «Curtain Wall» nell'elenco delle categorie non è una categoria di Revit ma un tipo di muro;
+     vale per i muri di tipo facciata continua, «Walls» per gli altri muri (codice categoria e categoria ammessa);
+   - lingua: i nomi delle fonti della coerenza (livello, nome, locale…) e dei campi (Nome, Nome tipo, Nome famiglia)
+     si mostrano nella lingua dell'interfaccia; nel CSV il tipo di anomalia usa lo stesso testo dell'Excel.

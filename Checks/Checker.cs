@@ -323,7 +323,7 @@ namespace ModelProof
                 if (c.Source == "locale" && expected.Contains(actual)) continue;   // porte e finestre: basta uno dei due locali
                 var different = expected.Where(e => e != actual).Distinct().ToList();
                 if (different.Count == 0) continue;
-                string src = c.Source == "livello" && t.Levels != null ? L.T("livelli degli elementi") : c.Source;
+                string src = c.Source == "livello" && t.Levels != null ? L.T("livelli degli elementi") : SourceText(c.Source);
                 rr.Issues.Add(MakeIssue(rule, t, isError, IssueKind.Coerenza, field, value,
                     L.F("{0} è «{1}», ma in {2} è «{3}»", c.Group, actual, src, string.Join(", ", different))));
             }
@@ -917,8 +917,24 @@ namespace ModelProof
             return new Issue
             {
                 Rule = rule.Name, Error = error, Kind = kind, ElementId = t.Id, ShowId = t.ShowId, Category = t.Category,
-                FamilyType = t.FamilyType, Field = field, Value = value ?? "", Message = message
+                FamilyType = t.FamilyType, Field = L.T(field ?? ""), Value = value ?? "", Message = message
             };
+        }
+
+        /// <summary>Nome della fonte della coerenza nella lingua dell'interfaccia (nel file è sempre in italiano).</summary>
+        private static string SourceText(string source)
+        {
+            switch (source)
+            {
+                case "livello": return L.T("livello");
+                case "nome": return L.T("nome");
+                case "nome tipo": return L.T("nome del tipo");
+                case "nome famiglia": return L.T("nome della famiglia");
+                case "type mark": return "Type Mark";
+                case "locale": return L.T("locale");
+                case "file": return L.T("nome del file");
+                default: return source;
+            }
         }
 
         private Issue MakeOk(Rule rule, Target t, string field, string value)

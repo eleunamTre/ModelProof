@@ -231,7 +231,7 @@ namespace ModelProof
             { "Structural Trusses", "OST_StructuralTruss" }, { "Telephone Devices", "OST_TelephoneDevices" },
             { "Temporary Structures", "OST_TemporaryStructure" }, { "Topography", "OST_Topography" }, { "Toposolid", "OST_Toposolid" },
             { "Vertical Circulation", "OST_VerticalCirculation" }, { "Walls", "OST_Walls" }, { "Walls - Reveals", "OST_Reveals" },
-            { "Walls - Sweep", "OST_Cornices" }, { "Windows", "OST_Windows" }, { "Wires", "OST_Wire" },
+            { "Walls - Sweep", "OST_Cornices" }, { "Curtain Wall", "OST_Walls" }, { "Curtain Walls", "OST_Walls" }, { "Windows", "OST_Windows" }, { "Wires", "OST_Wire" },
             // parti di ringhiere e scale (come le mostra Revit in inglese)
             { "Top Rails", "OST_RailingTopRail" }, { "Handrails", "OST_RailingHandRail" }, { "Balusters", "OST_StairsRailingBaluster" },
             { "Supports", "OST_RailingSupport|OST_StairsStringerCarriage" }, { "Runs", "OST_StairsRuns" }, { "Landings", "OST_StairsLandings" },

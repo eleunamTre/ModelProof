@@ -66,14 +66,33 @@ namespace ModelProof
             return null;
         }
 
-        /// <summary>La categoria Revit corrisponde al nome inglese dell'elenco (per id, o per nome con Revit in inglese).</summary>
-        private static bool SameCategory(Category c, string englishName)
+        /// <summary>
+        /// La categoria Revit corrisponde al nome inglese dell'elenco (per id, o per nome con Revit in inglese). Le
+        /// facciate continue non sono una categoria ma un tipo di muro: «Curtain Wall» vale per i muri di tipo facciata
+        /// continua, «Walls» per gli altri muri.
+        /// </summary>
+        private static bool SameCategory(Category c, string englishName, ElementType type)
         {
             if (c == null || string.IsNullOrWhiteSpace(englishName)) return false;
-            List<long> ids = RevitUtil.CategoryIds(englishName);
+            string name = englishName.Trim();
+            List<long> ids = RevitUtil.CategoryIds(name);
             long id = c.Id.Value;
-            if (ids.Contains(id)) return true;
-            return string.Equals(c.Name, englishName.Trim(), StringComparison.OrdinalIgnoreCase);
+            bool same = ids.Contains(id) || string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase);
+            if (!same) return false;
+            var wt = type as WallType;
+            if (wt == null || id != (long)BuiltInCategory.OST_Walls) return true;
+            bool curtainName = name.StartsWith("Curtain Wall", StringComparison.OrdinalIgnoreCase);
+            bool curtainType = false;
+            try { curtainType = wt.Kind == WallKind.Curtain; } catch { }
+            return curtainName == curtainType;
+        }
+
+        /// <summary>Nome da mostrare per la categoria di un tipo (le facciate continue come «Walls (Curtain Wall)»).</summary>
+        private static string CategoryText(Category c, ElementType type)
+        {
+            var wt = type as WallType;
+            try { if (wt != null && wt.Kind == WallKind.Curtain) return c.Name + " (Curtain Wall)"; } catch { }
+            return c.Name;
         }
 
         private Issue TypeIssue(Rule rule, bool error, Target t, string field, string value, string message)
@@ -84,27 +103,33 @@ namespace ModelProof
         // ------------------------------------------------------------------ parametri condivisi
 
         /// <summary>
-        /// Parametri dell'elenco: presenti nel modello come parametri condivisi (OK), presenti solo come parametri di
-        /// progetto non condivisi (errore), assenti (secondo «se_assente»). Parametri condivisi assegnati alle
-        /// categorie del progetto ma non in elenco: avviso.
+        /// Parametri condivisi IN USO nel modello (assegnati ad almeno una categoria del progetto, oppure compilati su
+        /// almeno un elemento o tipo): ognuno deve essere nell'elenco della regola. I parametri condivisi solo
+        /// registrati nel documento (arrivati con famiglie, mai usati: «fantasma») non contano, e i parametri
+        /// dell'elenco che il modello non usa non sono un errore. Chiave facoltativa «prefisso»: si controllano solo i
+        /// parametri il cui nome inizia così (maiuscole e minuscole contano).
         /// </summary>
         private void CheckSharedParameters(Rule rule, RuleResult rr)
         {
             bool error = rule.Severity == "errore";
             CodeList list = RuleList(rule, rr);
             if (list == null) return;
+            string prefix = rule.Get("prefisso").Trim().Trim('"');
+            Func<string, bool> passes = n => prefix.Length == 0 || n.StartsWith(prefix, StringComparison.Ordinal);
+            var wanted = new HashSet<string>(list.Codes(1).Select(x => x.Trim()).Where(x => x.Length > 0), StringComparer.Ordinal);
 
-            var shared = new Dictionary<string, List<SharedParameterElement>>(StringComparer.Ordinal);
+            // parametri condivisi registrati nel documento
+            var byGuid = new Dictionary<Guid, string>();
+            var sharedIds = new HashSet<long>();
             foreach (SharedParameterElement sp in new FilteredElementCollector(_doc).OfClass(typeof(SharedParameterElement)).Cast<SharedParameterElement>())
             {
+                sharedIds.Add(sp.Id.Value);
                 string n = (sp.Name ?? "").Trim();
-                List<SharedParameterElement> l;
-                if (!shared.TryGetValue(n, out l)) shared[n] = l = new List<SharedParameterElement>();
-                l.Add(sp);
+                if (passes(n)) byGuid[sp.GuidValue] = n;
             }
 
-            // parametri di progetto (assegnati alle categorie): condivisi o no
-            var boundShared = new HashSet<string>(StringComparer.Ordinal);
+            // assegnati alle categorie del progetto (condivisi o no)
+            var bound = new HashSet<string>(StringComparer.Ordinal);
             var boundProject = new HashSet<string>(StringComparer.Ordinal);
             DefinitionBindingMapIterator it = _doc.ParameterBindings.ForwardIterator();
             while (it.MoveNext())
@@ -112,34 +137,74 @@ namespace ModelProof
                 var def = it.Key as InternalDefinition;
                 if (def == null) continue;
                 string n = (def.Name ?? "").Trim();
-                bool isShared = false;
-                try { isShared = _doc.GetElement(def.Id) is SharedParameterElement; } catch { }
-                if (isShared) boundShared.Add(n); else boundProject.Add(n);
+                if (!passes(n)) continue;
+                int cats = 1;
+                try { var b = it.Current as ElementBinding; if (b != null) cats = b.Categories.Size; } catch { }
+                if (cats == 0) continue;
+                if (sharedIds.Contains(def.Id.Value)) bound.Add(n); else boundProject.Add(n);
             }
 
-            var wanted = new HashSet<string>(StringComparer.Ordinal);
-            foreach (string name in list.Codes(1))
-            {
-                string n = name.Trim();
-                if (n.Length == 0 || !wanted.Add(n)) continue;
-                rr.Checked++;
-                List<SharedParameterElement> found;
-                if (shared.TryGetValue(n, out found))
+            // compilati su elementi o tipi (anche se arrivano solo dalle famiglie)
+            var filled = new Dictionary<Guid, int>();
+            if (byGuid.Count > 0)
+                foreach (bool types in new[] { false, true })
                 {
-                    if (found.Count > 1)
-                        rr.Issues.Add(ControlIssue(rule, false, L.T("Parametro"), n,
-                            L.F("{0} parametri condivisi con lo stesso nome (GUID diversi: {1})", found.Count, string.Join(", ", found.Select(f => f.GuidValue.ToString())))));
-                    else
-                        rr.Issues.Add(OkRow(rule, _info.FileName, _info.RoleText, L.T("Parametro"), n,
-                            boundShared.Contains(n) ? L.T("condiviso, assegnato alle categorie") : L.T("condiviso (nelle famiglie)")));
+                    var coll = new FilteredElementCollector(_doc);
+                    IEnumerable<Element> els = types ? coll.WhereElementIsElementType() : coll.WhereElementIsNotElementType();
+                    foreach (Element el in els)
+                    {
+                        if (filled.Count == byGuid.Count) break;
+                        try
+                        {
+                            if (el.Category == null) continue;
+                            foreach (Parameter p in el.Parameters)
+                            {
+                                if (!p.IsShared) continue;
+                                Guid g = p.GUID;
+                                if (!byGuid.ContainsKey(g) || !HasValue(p)) continue;
+                                int c; filled.TryGetValue(g, out c); filled[g] = c + 1;
+                            }
+                        }
+                        catch { }
+                    }
                 }
-                else if (boundProject.Contains(n))
-                    rr.Issues.Add(ControlIssue(rule, error, L.T("Parametro"), n, L.T("parametro di progetto NON condiviso")));
-                else if (rule.Absent != "ignora")
-                    rr.Issues.Add(ControlIssue(rule, error && rule.Absent == "errore", L.T("Parametro"), n, L.T("parametro dell'elenco assente nel modello")));
+            var filledByName = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var kv in filled) { int c; filledByName.TryGetValue(byGuid[kv.Key], out c); filledByName[byGuid[kv.Key]] = c + kv.Value; }
+
+            var inUse = new SortedSet<string>(bound.Concat(filledByName.Keys), StringComparer.Ordinal);
+            foreach (string n in inUse)
+            {
+                rr.Checked++;
+                var origin = new List<string>();
+                if (bound.Contains(n)) origin.Add(L.T("parametro di progetto"));
+                int c;
+                if (filledByName.TryGetValue(n, out c)) origin.Add(L.F("compilato su {0} elementi o tipi", c));
+                string where = string.Join(", ", origin);
+                int same = byGuid.Values.Count(x => x == n);
+                if (!wanted.Contains(n))
+                    rr.Issues.Add(ControlIssue(rule, error, L.T("Parametro"), n, L.F("parametro condiviso in uso ({0}) non presente nell'elenco [{1}]", where, list.Name)));
+                else if (same > 1)
+                    rr.Issues.Add(ControlIssue(rule, false, L.T("Parametro"), n, L.F("{0} parametri condivisi con lo stesso nome (GUID diversi)", same)));
+                else
+                    rr.Issues.Add(OkRow(rule, _info.FileName, _info.RoleText, L.T("Parametro"), n, where));
             }
-            foreach (string n in boundShared.Where(x => !wanted.Contains(x)).OrderBy(x => x, StringComparer.Ordinal))
-                rr.Issues.Add(ControlIssue(rule, false, L.T("Parametro"), n, L.F("parametro condiviso del progetto non presente nell'elenco [{0}]", list.Name)));
+            // parametri di progetto NON condivisi con il nome di un parametro dell'elenco
+            foreach (string n in boundProject.Where(x => wanted.Contains(x)))
+            {
+                rr.Checked++;
+                rr.Issues.Add(ControlIssue(rule, error, L.T("Parametro"), n, L.T("parametro di progetto NON condiviso: nell'elenco è un parametro condiviso")));
+            }
+        }
+
+        private static bool HasValue(Parameter p)
+        {
+            try
+            {
+                if (!p.HasValue) return false;
+                if (p.StorageType == StorageType.String) { string v = p.AsString(); return v != null && v.Trim().Length > 0; }
+                return true;
+            }
+            catch { return false; }
         }
 
         // ------------------------------------------------------------------ codice di categoria e funzione
@@ -186,9 +251,9 @@ namespace ModelProof
                 Category c = CategoryOf(t.Type, t.Id);
                 if (!table.ByCode.TryGetValue(code, out cats))
                     rr.Issues.Add(TypeIssue(rule, error, t, part, code, L.F("codice «{0}» non nell'elenco [{1}]", code, list.Name)));
-                else if (c != null && !cats.Any(n => SameCategory(c, n)))
+                else if (c != null && !cats.Any(n => SameCategory(c, n, t.Type)))
                     rr.Issues.Add(TypeIssue(rule, error, t, part, code,
-                        L.F("«{0}» indica {1}, ma la categoria Revit è {2}", code, string.Join(" / ", cats), c.Name)));
+                        L.F("«{0}» indica {1}, ma la categoria Revit è {2}", code, string.Join(" / ", cats), CategoryText(c, t.Type))));
                 else
                     rr.Issues.Add(MakeOkFor(rule, t, part, code, string.Join(" / ", cats)));
             }
@@ -248,17 +313,17 @@ namespace ModelProof
                 Category c = CategoryOf(t.Type, t.Id);
                 if (c == null) continue;
                 rr.Checked++;
-                List<string[]> rows = table.Rows.Where(r => SameCategory(c, r[1])).ToList();
+                List<string[]> rows = table.Rows.Where(r => SameCategory(c, r[1], t.Type)).ToList();
                 if (rows.Count == 0)
                 {
-                    rr.Issues.Add(TypeIssue(rule, false, t, L.T("Categoria"), c.Name, L.F("categoria non presente nell'elenco [{0}]", list.Name)));
+                    rr.Issues.Add(TypeIssue(rule, false, t, L.T("Categoria"), CategoryText(c, t.Type), L.F("categoria non presente nell'elenco [{0}]", list.Name)));
                     continue;
                 }
                 var disc = new HashSet<string>(rows.SelectMany(r => ProjectConfig.SplitList(r[2], ',')), StringComparer.OrdinalIgnoreCase);
                 if (disc.Overlaps(mine))
-                    rr.Issues.Add(MakeOkFor(rule, t, L.T("Categoria"), c.Name, string.Join(", ", disc.OrderBy(x => x))));
+                    rr.Issues.Add(MakeOkFor(rule, t, L.T("Categoria"), CategoryText(c, t.Type), string.Join(", ", disc.OrderBy(x => x))));
                 else
-                    rr.Issues.Add(TypeIssue(rule, error, t, L.T("Categoria"), c.Name,
+                    rr.Issues.Add(TypeIssue(rule, error, t, L.T("Categoria"), CategoryText(c, t.Type),
                         L.F("categoria non ammessa per il modello {0} ({1}): ammessa per {2}", _info.RoleText, string.Join(", ", mine), string.Join(", ", disc.OrderBy(x => x)))));
             }
         }

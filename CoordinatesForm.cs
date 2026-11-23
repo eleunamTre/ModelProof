@@ -28,7 +28,7 @@ namespace ModelProof
             list.Columns.Add(L.T("Nord reale (°)"), 95, HorizontalAlignment.Right);
             list.Columns.Add(L.T("Coordinate condivise nel file"), 95);
             list.Columns.Add(L.T("Collegato in coordinate condivise"), 95);
-            list.Columns.Add(L.T("Problemi"), 420);
+            list.Columns.Add(L.T("Stato"), 420);
             foreach (CoordinateRow r in run.Coordinates)
             {
                 var it = new ListViewItem(r.Role) { ToolTipText = r.File };
