@@ -106,6 +106,7 @@ namespace ModelProof
         public bool IsControl { get { return Control != null; } }
         public bool AppliesTo(string role) { return role != null && Models.Contains(role); }
         public string Get(string key) { return Section.Get(key); }
+        public string Get(string key, string fallback) { return Section.Get(key, fallback); }
     }
 
     /// <summary>Elenco usato in un formato: nel formato largo il codice letto finisce nel gruppo «__L» + indice.</summary>

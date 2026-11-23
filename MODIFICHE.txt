@@ -225,3 +225,5 @@ ModelProof – registro delle modifiche
    almeno un elemento o tipo del modello), assegnati (è un parametro di progetto) oppure «assegnati o compilati»
    (come la voce 20). I valori si cercano solo su elementi e tipi di categorie del modello (non informazioni di
    progetto, viste, tavole). Nuova chiave «escludi»: nomi o inizi di nome con * finale da non controllare.
+
+27. Correzione di compilazione della 26: Rule.Get con valore di riserva (mancava l'overload a due argomenti).
