@@ -207,11 +207,12 @@ namespace ModelProof
             sb.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
             if (s.HeaderRow)
                 sb.Append("<sheetViews><sheetView workbookViewId=\"0\"><pane ySplit=\"1\" topLeftCell=\"A2\" activePane=\"bottomLeft\" state=\"frozen\"/></sheetView></sheetViews>");
-            if (s.Widths != null && s.Widths.Length > 0)
+            double[] widths = FitWidths(s);
+            if (widths.Length > 0)
             {
                 sb.Append("<cols>");
-                for (int c = 0; c < s.Widths.Length; c++)
-                    sb.Append("<col min=\"" + (c + 1) + "\" max=\"" + (c + 1) + "\" width=\"" + s.Widths[c].ToString("0.##", CultureInfo.InvariantCulture) + "\" customWidth=\"1\"/>");
+                for (int c = 0; c < widths.Length; c++)
+                    sb.Append("<col min=\"" + (c + 1) + "\" max=\"" + (c + 1) + "\" width=\"" + widths[c].ToString("0.##", CultureInfo.InvariantCulture) + "\" customWidth=\"1\"/>");
                 sb.Append("</cols>");
             }
             sb.Append("<sheetData>");
@@ -258,6 +259,42 @@ namespace ModelProof
             int n = 1;
             foreach (object[] r in s.Rows) n = Math.Max(n, r.Length);
             return n;
+        }
+
+        /// <summary>
+        /// Larghezza delle colonne adattata al testo, come il doppio clic sul bordo dell'intestazione in Excel: il testo
+        /// più lungo della colonna (intestazione compresa, con un po' di margine per il filtro), al massimo 120 caratteri;
+        /// le larghezze indicate dal chiamante valgono come minimo solo per le colonne senza dati.
+        /// </summary>
+        private static double[] FitWidths(Sheet s)
+        {
+            int n = Math.Max(MaxCols(s), s.Widths != null ? s.Widths.Length : 0);
+            var w = new double[n];
+            var data = new bool[n];
+            for (int r = 0; r < s.Rows.Count; r++)
+            {
+                object[] cells = s.Rows[r];
+                bool header = s.HeaderRow && r == 0;
+                bool title = s.Styles[r] == RowStyle.Title;
+                for (int c = 0; c < cells.Length && c < n; c++)
+                {
+                    if (cells[c] == null || title) continue;     // i titoli possono uscire dalla colonna
+                    string text = cells[c] is IFormattable ? ((IFormattable)cells[c]).ToString(null, CultureInfo.CurrentCulture) : cells[c].ToString();
+                    int len = 0;
+                    foreach (string line in text.Split('\n')) len = Math.Max(len, line.Length);
+                    double need = len * (header ? 1.15 : 1.05) + (header ? 4 : 2);   // grassetto e freccia del filtro
+                    if (need > w[c]) w[c] = need;
+                    if (!header && text.Length > 0) data[c] = true;
+                }
+            }
+            for (int c = 0; c < n; c++)
+            {
+                // colonne senza dati (es. da compilare a mano): almeno la larghezza indicata dal chiamante
+                if (!data[c] && s.Widths != null && c < s.Widths.Length) w[c] = Math.Max(w[c], s.Widths[c]);
+                if (w[c] <= 0) w[c] = 10;
+                w[c] = Math.Max(6, Math.Min(120, w[c]));
+            }
+            return w;
         }
 
         private static string Range(Sheet s)
