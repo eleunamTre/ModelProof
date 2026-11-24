@@ -274,3 +274,12 @@ ModelProof – registro delle modifiche
    selezionate nell'elenco si evidenziano nel modello (Selection.SetReferences con riferimenti ai collegamenti;
    casella «Evidenzia nel modello»); dal clic destro «Inquadra nella vista» fa lo zoom sull'ingombro degli elementi
    nella vista attiva.
+
+38. Nuovo controllo «sistema ifc» (sezione IFC, di solito come avviso): per tipi di tubazione/condotto e circuiti
+   elettrici si legge la sigla del sistema dal nome (parte «parte_sistema», con la regola sul «Nome tipo» dei tipi di
+   sistema impiantistico) e dall'elenco della regola il sistema IFC atteso («colonna_ifc») e le classificazioni Revit
+   compatibili («colonna_classificazione», nomi di MEPSystemClassification o ElectricalSystemType separati da «;»).
+   Avviso se Export Type to IFC As / Type IFC Predefined Type, quando compilati, indicano un altro sistema (una classe
+   senza tipo predefinito, es. IfcDistributionSystem, non conta) e se la classificazione di Revit, da cui
+   l'esportatore ricava il sistema quando i parametri sono vuoti, non è tra quelle compatibili. Colonne vuote o
+   classificazione non definita: aspetto non controllato.

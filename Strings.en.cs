@@ -265,6 +265,10 @@ namespace ModelProof
             d["Evidenzia nel modello"] = "Highlight in model";
             d["In Revit: clicca gli elementi dei collegamenti, uno alla volta; ognuno si aggiunge subito. Esc per finire."] = "In Revit: click the linked elements one at a time; each is added right away. Esc to finish.";
             d["In Revit: racchiudi gli elementi in un riquadro, poi «Fine» nella barra delle opzioni. Esc annulla."] = "In Revit: drag a box around the elements, then «Finish» in the Options Bar. Esc cancels.";
+            d["Classificazione"] = "Classification";
+            d["la sigla «{0}» ({1}) non è compatibile con la classificazione «{2}» (compatibili: {3})"] = "code «{0}» ({1}) does not match the classification «{2}» (compatible: {3})";
+            d["la sigla «{0}» corrisponde al sistema IFC {1}, il parametro indica «{2}»"] = "code «{0}» corresponds to IFC system {1}, the parameter says «{2}»";
+            d["manca una regola sul «Nome tipo» dei tipi di sistema impiantistico con la parte {0}"] = "missing a rule on the «Type Name» of MEP system types with the part {0}";
             d["Inquadra nella vista"] = "Zoom in view";
             d["Premi «Scegli a clic…» o «Scegli con riquadro…» e scegli in Revit gli elementi dei modelli collegati."] = "Press «Pick by click…» or «Pick by box…» and choose the linked elements in Revit.";
             d["Racchiudi in un riquadro gli elementi dei modelli collegati, poi «Fine» – Esc per annullare"] = "Drag a box around the linked elements, then «Finish» – Esc to cancel";

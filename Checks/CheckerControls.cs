@@ -519,6 +519,111 @@ namespace ModelProof
             }
         }
 
+        // ------------------------------------------------------------------ sistema IFC dei sistemi impiantistici
+
+        /// <summary>
+        /// Tipi di sistema impiantistico (tubazioni, condotti) e circuiti elettrici: dalla sigla del sistema nel nome
+        /// (parte «parte_sistema», letta con la regola sul nome dei tipi di sistema impiantistico) si cerca nell'elenco
+        /// il sistema IFC atteso («colonna_ifc») e le classificazioni Revit compatibili («colonna_classificazione»,
+        /// separate da «;»: nomi di MEPSystemClassification o ElectricalSystemType, es. DomesticColdWater, PowerCircuit).
+        /// Si controlla: 1) i parametri IFC del tipo (campi della regola), se compilati, indicano quel sistema;
+        /// 2) la classificazione di Revit, da cui l'esportatore ricava il sistema quando i parametri sono vuoti, è tra
+        /// quelle compatibili. Sigla non in elenco: lo segnala la regola sul nome; colonne vuote: aspetto non controllato.
+        /// </summary>
+        private void CheckIfcSystem(Rule rule, RuleResult rr)
+        {
+            bool error = rule.Severity == "errore";
+            CodeList list = RuleList(rule, rr);
+            if (list == null) return;
+            int cCode = Column(rule, "colonna_codice", 1), cIfc = Column(rule, "colonna_ifc", 2), cCls = Column(rule, "colonna_classificazione", 4);
+            string part = Part(rule, "parte_sistema", "SIS");
+            Rule parser = _cfg.FindParser("tipi di sistema impiantistico", "Nome tipo");
+            if (parser == null || parser.Regex == null || parser.Regex.GroupNumberFromName(part) < 0)
+            {
+                rr.Note = L.F("manca una regola sul «Nome tipo» dei tipi di sistema impiantistico con la parte {0}", "{" + part + "}");
+                return;
+            }
+            var ifc = new Dictionary<string, string>(StringComparer.Ordinal);
+            var cls = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (ConfigRow r in list.Rows)
+            {
+                string code = r.Cell(cCode - 1).Trim();
+                if (code.Length == 0 || ifc.ContainsKey(code)) continue;
+                ifc[code] = r.Cell(cIfc - 1).Trim();
+                cls[code] = r.Cell(cCls - 1).Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
+            }
+            List<string> fields = rule.Fields.Count > 0 ? rule.Fields : new List<string> { "Export Type to IFC As", "Type IFC Predefined Type" };
+            foreach (Target t in Targets("tipi di sistema impiantistico"))
+            {
+                string name = t.Type != null ? t.Type.Name ?? "" : t.El.Name ?? "";
+                Match m = Parse(parser, name);
+                if (!m.Success || !m.Groups[part].Success) continue;
+                string code = m.Groups[part].Value;
+                string expected;
+                if (!ifc.TryGetValue(code, out expected)) continue;
+                rr.Checked++;
+                bool bad = false;
+
+                // 1) parametri IFC del tipo (i circuiti non hanno un tipo)
+                if (t.Type != null && expected.Length > 0)
+                    foreach (string field in fields)
+                    {
+                        string value = RevitUtil.ValueOf(RevitUtil.FindParameter(t.Type, field), _doc);
+                        if (string.IsNullOrWhiteSpace(value)) continue;
+                        string v = value.Trim();
+                        int dot = v.LastIndexOf('.');
+                        string pre = dot >= 0 ? v.Substring(dot + 1) : v;
+                        // una sola classe senza tipo predefinito (es. IfcDistributionSystem) non dice il sistema
+                        if (dot < 0 && pre.StartsWith("Ifc", StringComparison.OrdinalIgnoreCase)) continue;
+                        if (string.Equals(pre, expected, StringComparison.OrdinalIgnoreCase)) continue;
+                        bad = true;
+                        rr.Issues.Add(TypeIssue(rule, error, t, field, value,
+                            L.F("la sigla «{0}» corrisponde al sistema IFC {1}, il parametro indica «{2}»", code, expected, value)));
+                    }
+
+                // 2) classificazione di Revit
+                List<string> allowed = cls[code];
+                string current = Classification(t.El);
+                if (allowed.Count > 0 && current.Length > 0)
+                {
+                    if (!allowed.Any(a => SameWord(a, current)))
+                    {
+                        bad = true;
+                        rr.Issues.Add(TypeIssue(rule, error, t, L.T("Classificazione"), current,
+                            L.F("la sigla «{0}» ({1}) non è compatibile con la classificazione «{2}» (compatibili: {3})",
+                                code, expected, current, string.Join(", ", allowed))));
+                    }
+                }
+                if (!bad)
+                    rr.Issues.Add(MakeOkFor(rule, t, L.T("Classificazione"), current,
+                        string.Format("{0}: {1}", code, expected.Length > 0 ? expected : "-")));
+            }
+        }
+
+        /// <summary>Classificazione Revit di un tipo di tubazione/condotto o di un circuito elettrico ("" se assente).</summary>
+        private static string Classification(Element e)
+        {
+            try
+            {
+                var mst = e as MEPSystemType;
+                if (mst != null)
+                    return mst.SystemClassification == MEPSystemClassification.UndefinedSystemClassification ? "" : mst.SystemClassification.ToString();
+                var es = e as Autodesk.Revit.DB.Electrical.ElectricalSystem;
+                if (es != null)
+                    return es.SystemType == Autodesk.Revit.DB.Electrical.ElectricalSystemType.UndefinedSystemType ? "" : es.SystemType.ToString();
+            }
+            catch { }
+            return "";
+        }
+
+        /// <summary>Stesso nome senza maiuscole, spazi e trattini (Domestic Cold Water = DomesticColdWater).</summary>
+        private static bool SameWord(string a, string b)
+        {
+            Func<string, string> n = x => new string(x.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            return n(a) == n(b);
+        }
+
         // ------------------------------------------------------------------ coerenza dei nomi tra tipi analoghi
 
         private static readonly Regex RxDim = new Regex(@"^\d+(?:[.,]\d+)?(?:[xX×]\d+(?:[.,]\d+)?)+$", RegexOptions.CultureInvariant);
