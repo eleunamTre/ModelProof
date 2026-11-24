@@ -261,3 +261,8 @@ ModelProof – registro delle modifiche
 35. Nuova chiave delle regole «solo_coerenza = si»: la regola segnala solo la coerenza (niente vuoti, formato,
    formato_avviso, uguale_a, numerazione), così la stessa coerenza si può mettere in una sezione a parte senza doppioni.
    Circuiti elettrici: nessun confronto della zona con i livelli (dipende dal quadro).
+
+36. Parametri condivisi, disciplina e tipo di dato (elenco aggiornato dall'utente il 24/11): per ogni parametro
+   dell'elenco in uso, avviso se la colonna «colonna_disciplina» non comprende la disciplina del modello
+   («disciplina.RUOLO» nella regola, es. disciplina.IMP = MEP) e se il tipo di dato del parametro condiviso non è quello
+   della colonna «colonna_tipo» (Testo, Lunghezza, Volume, Area, Sì/No, Intero, Numero, Materiale, Url).

@@ -233,7 +233,12 @@ namespace ModelProof
                 if (!wanted.Contains(n))
                     rr.Issues.Add(ControlIssue(rule, error, L.T("Parametro"), n, L.F("parametro condiviso in uso ({0}) non presente nell'elenco [{1}]", where, list.Name)));
                 else
+                {
                     rr.Issues.Add(OkRow(rule, _info.FileName, _info.RoleText, L.T("Parametro"), n, where));
+                    Guid g0;
+                    if (!boundGuid.TryGetValue(n, out g0)) g0 = byGuid.Where(kv => kv.Value == n && filled.ContainsKey(kv.Key)).Select(kv => kv.Key).FirstOrDefault();
+                    CheckListedParameter(rule, rr, list, n, g0);
+                }
 
                 // stesso nome, GUID diversi: conta solo se più GUID sono davvero usati (assegnato o compilato). Quello
                 // «giusto» è il GUID del parametro di progetto (o il più compilato); gli altri arrivano da famiglie fatte
@@ -264,6 +269,64 @@ namespace ModelProof
                 rr.Checked++;
                 rr.Issues.Add(ControlIssue(rule, error, L.T("Parametro"), n, L.T("parametro di progetto NON condiviso: nell'elenco è un parametro condiviso")));
             }
+        }
+
+        /// <summary>
+        /// Per un parametro dell'elenco in uso: disciplina (colonna «colonna_disciplina»; la disciplina di questo modello
+        /// è «disciplina.RUOLO», es. disciplina.IMP = MEP) e tipo di dato (colonna «colonna_tipo»: Testo, Lunghezza,
+        /// Volume, Sì/No, Intero, Numero, Materiale, Url). Solo avvisi.
+        /// </summary>
+        private void CheckListedParameter(Rule rule, RuleResult rr, CodeList list, string name, Guid guid)
+        {
+            int cDisc = Column(rule, "colonna_disciplina", 0), cType = Column(rule, "colonna_tipo", 0);
+            ConfigRow row = list.Rows.FirstOrDefault(r => string.Equals(r.Cell(0).Trim(), name, StringComparison.Ordinal));
+            if (row == null) return;
+            string mine = _info.Role != null ? rule.Get("disciplina." + _info.Role).Trim() : "";
+            if (cDisc > 0 && mine.Length > 0)
+            {
+                var allowed = row.Cell(cDisc - 1).Split(new[] { " e ", ",", ";", "/", "+" }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
+                if (allowed.Count > 0 && !allowed.Any(a => string.Equals(a, mine, StringComparison.OrdinalIgnoreCase)))
+                    rr.Issues.Add(ControlIssue(rule, false, L.T("Parametro"), name,
+                        L.F("parametro previsto per {0}, usato nel modello {1} ({2})", string.Join(", ", allowed), _info.RoleText, mine)));
+            }
+            if (cType > 0 && guid != Guid.Empty)
+            {
+                ForgeTypeId expected = SpecOf(row.Cell(cType - 1));
+                if (expected == null) return;
+                try
+                {
+                    SharedParameterElement sp = SharedParameterElement.Lookup(_doc, guid);
+                    InternalDefinition d = sp != null ? sp.GetDefinition() : null;
+                    ForgeTypeId actual = d != null ? d.GetDataType() : null;
+                    if (actual != null && !actual.Equals(expected))
+                        rr.Issues.Add(ControlIssue(rule, false, L.T("Parametro"), name,
+                            L.F("tipo di dato «{0}», nell'elenco «{1}»", SpecLabel(actual), row.Cell(cType - 1).Trim())));
+                }
+                catch { }
+            }
+        }
+
+        private static ForgeTypeId SpecOf(string text)
+        {
+            switch ((text ?? "").Trim().ToLowerInvariant())
+            {
+                case "testo": case "text": return SpecTypeId.String.Text;
+                case "lunghezza": case "length": return SpecTypeId.Length;
+                case "volume": return SpecTypeId.Volume;
+                case "area": return SpecTypeId.Area;
+                case "sì/no": case "si/no": case "yes/no": return SpecTypeId.Boolean.YesNo;
+                case "intero": case "integer": return SpecTypeId.Int.Integer;
+                case "numero": case "number": return SpecTypeId.Number;
+                case "materiale": case "material": return SpecTypeId.Reference.Material;
+                case "url": return SpecTypeId.String.Url;
+                default: return null;
+            }
+        }
+
+        private static string SpecLabel(ForgeTypeId id)
+        {
+            try { return LabelUtils.GetLabelForSpec(id); } catch { return id.TypeId; }
         }
 
         /// <summary>Famiglia (o tipo di sistema) di un elemento o di un tipo, per i messaggi.</summary>
