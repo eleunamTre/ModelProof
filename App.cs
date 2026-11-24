@@ -44,7 +44,7 @@ namespace ModelProof
 
             RibbonPanel pTools = app.CreateRibbonPanel(tabName, L.T("Strumenti"));
             pTools.AddItem(Push("LinkQuery", "Interroga\ncollegamento", asm, typeof(LinkQueryCommand), "pick",
-                "Apre una finestra da cui scegliere in Revit uno o più elementi dei modelli collegati: mostra ID, file, categoria, famiglia e tipo, livello e tutti i parametri, senza aprire il modello originale. Gli ID si copiano (doppio clic, Ctrl+C o clic destro) per «Select by ID» nel file originale.",
+                "Apre una finestra da cui scegliere in Revit elementi dei modelli collegati, a clic uno alla volta o con un riquadro: mostra ID, file, categoria, famiglia e tipo, livello e tutti i parametri, senza aprire il modello originale. Le righe selezionate si evidenziano nel modello e si possono inquadrare; gli ID si copiano (doppio clic, Ctrl+C o clic destro) per «Select by ID» nel file originale.",
                 typeof(ProjectAvailability)));
             pTools.AddItem(Push("Schedules", "Crea\nabachi", asm, typeof(CreateSchedulesCommand), "schedule",
                 "Crea nel modello gli abachi di controllo descritti nel file delle regole (sezioni [ABACO nome]), per verificare a mano parametri, IFC, materiali e locali. Disponibile solo se il file delle regole contiene abachi. Si sceglie se aggiornare quelli esistenti o creare solo i mancanti; si annulla con Ctrl+Z.",

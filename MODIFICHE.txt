@@ -266,3 +266,11 @@ ModelProof – registro delle modifiche
    dell'elenco in uso, avviso se la colonna «colonna_disciplina» non comprende la disciplina del modello
    («disciplina.RUOLO» nella regola, es. disciplina.IMP = MEP) e se il tipo di dato del parametro condiviso non è quello
    della colonna «colonna_tipo» (Testo, Lunghezza, Volume, Area, Sì/No, Intero, Numero, Materiale, Url).
+
+37. Interroga collegamento, scelta e evidenziazione: «Scegli a clic…» porta Revit in primo piano e prende un elemento
+   per clic (PickObject ripetuto), aggiungendolo subito all'elenco; Esc finisce. «Scegli con riquadro…» resta la
+   selezione multipla di Revit (PickObjects, poi «Fine»). Prima il primo clic serviva solo ad attivare la finestra di
+   Revit e la finestra dell'add-in si riattivava a ogni aggiunta, per cui funzionava solo il riquadro. Le righe
+   selezionate nell'elenco si evidenziano nel modello (Selection.SetReferences con riferimenti ai collegamenti;
+   casella «Evidenzia nel modello»); dal clic destro «Inquadra nella vista» fa lo zoom sull'ingombro degli elementi
+   nella vista attiva.
