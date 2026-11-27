@@ -270,6 +270,8 @@ namespace ModelProof
             d["la sigla «{0}» corrisponde al sistema IFC {1}, il parametro indica «{2}»"] = "code «{0}» corresponds to IFC system {1}, the parameter says «{2}»";
             d["manca una regola sul «Nome tipo» dei tipi di sistema impiantistico con la parte {0}"] = "missing a rule on the «Type Name» of MEP system types with the part {0}";
             d["famiglie: {0}"] = "families: {0}";
+            d["Copia colonna «{0}»"] = "Copy column «{0}»";
+            d["Copia «{0}»"] = "Copy «{0}»";
             d["Inquadra nella vista"] = "Zoom in view";
             d["Premi «Scegli a clic…» o «Scegli con riquadro…» e scegli in Revit gli elementi dei modelli collegati."] = "Press «Pick by click…» or «Pick by box…» and choose the linked elements in Revit.";
             d["Racchiudi in un riquadro gli elementi dei modelli collegati, poi «Fine» – Esc per annullare"] = "Drag a box around the linked elements, then «Finish» – Esc to cancel";

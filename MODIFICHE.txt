@@ -290,3 +290,8 @@ ModelProof – registro delle modifiche
 40. Parametri condivisi: le righe «non presente nell'elenco», disciplina e tipo di dato dicono dove si trova il
    parametro: famiglie che lo compilano (fino a 6) nel messaggio, e un elemento d'esempio (prima un'istanza, se no il
    tipo con una sua istanza da inquadrare) in ID, Categoria e Famiglia/tipo.
+
+41. Finestra dei risultati, copia: clic destro su una cella → «Copia "valore"» copia quella cella (con più righe
+   selezionate, la stessa colonna di tutte, una per riga); poi «Copia righe» (tutte le colonne, con tabulazioni, per
+   Excel), «Copia ID» e «Inquadra». Ctrl+C copia la colonna dell'ultimo clic. Il clic destro su una riga non selezionata
+   la seleziona.

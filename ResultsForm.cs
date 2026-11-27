@@ -37,6 +37,7 @@ namespace ModelProof
         private int _sortColumn = -1;          // colonna delle anomalie su cui si ordina (-1 = ordine della verifica)
         private bool _sortAscending = true;
         private string[] _issueHeaders;
+        private int _clickColumn = 6;   // colonna dell'ultimo clic sulle righe (di base «Valore»): la copia la usa
 
         public static CheckRun LastRun(string documentKey)
         {
@@ -124,8 +125,45 @@ namespace ModelProof
                 FillIssues();
             };
             _issues.DoubleClick += (s, e) => Send(SelectedIssues(), ShowMode.Zoom);
+            // copia: clic destro su una cella → «Copia <colonna>» copia quella cella delle righe selezionate;
+            // Ctrl+C copia la colonna dell'ultimo clic
+            _issues.MouseDown += (s, e) =>
+            {
+                ListViewHitTestInfo hit = _issues.HitTest(e.Location);
+                if (hit.Item == null) return;
+                if (hit.SubItem != null) _clickColumn = hit.Item.SubItems.IndexOf(hit.SubItem);
+                if (e.Button == MouseButtons.Right && !hit.Item.Selected)
+                {
+                    _issues.SelectedItems.Clear();
+                    hit.Item.Selected = true;
+                    hit.Item.Focused = true;
+                }
+            };
+            var issueMenu = new ContextMenuStrip();
+            var copyCell = new ToolStripMenuItem();
+            copyCell.Click += (s, e) => CopyColumn(_clickColumn);
+            var copyRows = new ToolStripMenuItem(L.T("Copia righe"));
+            copyRows.Click += (s, e) => CopyIssueRows();
+            var copyIds = new ToolStripMenuItem(L.T("Copia ID"));
+            copyIds.Click += (s, e) => CopyColumn(2);
+            var zoomItem = new ToolStripMenuItem(L.T("Inquadra"));
+            zoomItem.Click += (s, e) => Send(SelectedIssues(), ShowMode.Zoom);
+            issueMenu.Items.AddRange(new ToolStripItem[] { copyCell, copyRows, copyIds, new ToolStripSeparator(), zoomItem });
+            issueMenu.Opening += (s, e) =>
+            {
+                if (_issues.SelectedItems.Count == 0) { e.Cancel = true; return; }
+                int c = Math.Max(0, Math.Min(_clickColumn, _issueHeaders.Length - 1));
+                string head = _issueHeaders[c];
+                string cell = _issues.SelectedItems.Count == 1 && c < _issues.SelectedItems[0].SubItems.Count ? _issues.SelectedItems[0].SubItems[c].Text : "";
+                copyCell.Text = cell.Length > 0
+                    ? L.F("Copia «{0}»", cell.Length > 50 ? cell.Substring(0, 50) + "…" : cell)
+                    : L.F("Copia colonna «{0}»", head);
+                copyCell.Enabled = _issues.SelectedItems.Count > 1 || cell.Length > 0;
+            };
+            _issues.ContextMenuStrip = issueMenu;
             _issues.KeyDown += (s, e) =>
             {
+                if (e.Control && e.KeyCode == Keys.C) { CopyColumn(_clickColumn); e.Handled = true; return; }
                 if (e.KeyCode == Keys.Enter) Send(SelectedIssues(), ShowMode.Zoom);
                 else if (e.Control && e.KeyCode == Keys.A) { foreach (ListViewItem it in _issues.Items) it.Selected = true; }
             };
@@ -293,6 +331,32 @@ namespace ModelProof
                 case 8: return i => i.File ?? "";
                 default: return i => i.Message ?? "";
             }
+        }
+
+        /// <summary>Testo di una colonna delle righe selezionate, una per riga (vuote escluse).</summary>
+        private void CopyColumn(int column)
+        {
+            var values = _issues.SelectedItems.Cast<ListViewItem>()
+                .Select(it => column >= 0 && column < it.SubItems.Count ? it.SubItems[column].Text : "")
+                .Where(v => v.Length > 0).ToList();
+            SetClipboard(string.Join(Environment.NewLine, values));
+        }
+
+        /// <summary>Righe selezionate con tutte le colonne, separate da tabulazioni (si incollano in Excel).</summary>
+        private void CopyIssueRows()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(string.Join("\t", _issueHeaders));
+            foreach (ListViewItem it in _issues.SelectedItems)
+                sb.AppendLine(string.Join("\t", it.SubItems.Cast<ListViewItem.ListViewSubItem>().Select(x => x.Text)));
+            SetClipboard(sb.ToString());
+        }
+
+        private static void SetClipboard(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            try { Clipboard.SetText(text); }
+            catch (Exception ex) { Log.Error("Copia", ex); }
         }
 
         private List<Issue> SelectedIssues()
