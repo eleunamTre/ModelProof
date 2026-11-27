@@ -286,3 +286,7 @@ ModelProof – registro delle modifiche
 
 39. Finestra dei risultati: colonna «File» in fondo (ordinabile), così nelle righe dei collegamenti si vede di quale
    file si parla e non solo il ruolo letto dal nome.
+
+40. Parametri condivisi: le righe «non presente nell'elenco», disciplina e tipo di dato dicono dove si trova il
+   parametro: famiglie che lo compilano (fino a 6) nel messaggio, e un elemento d'esempio (prima un'istanza, se no il
+   tipo con una sua istanza da inquadrare) in ID, Categoria e Famiglia/tipo.

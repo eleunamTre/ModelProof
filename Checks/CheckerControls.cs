@@ -219,6 +219,26 @@ namespace ModelProof
                 }
             var filledByName = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var kv in filled) { int c; filledByName.TryGetValue(byGuid[kv.Key], out c); filledByName[byGuid[kv.Key]] = c + kv.Value; }
+            // dove si trova, per nome (tutti i GUID): famiglie che lo compilano e un elemento da mostrare
+            Func<string, Issue, Issue> locate = (n, issue) =>
+            {
+                var guids = byGuid.Where(kv => kv.Value == n).Select(kv => kv.Key).ToList();
+                var fams = new SortedSet<string>(guids.Where(guidFamilies.ContainsKey).SelectMany(g => guidFamilies[g]), StringComparer.CurrentCultureIgnoreCase);
+                Element show = guids.Where(guidElement.ContainsKey).Select(g => guidElement[g])
+                    .OrderBy(e => e is ElementType ? 1 : 0).FirstOrDefault();
+                if (fams.Count > 0)
+                    issue.Message += " – " + L.F("famiglie: {0}", string.Join(", ", fams.Take(6)) + (fams.Count > 6 ? ", …" : ""));
+                if (show != null)
+                {
+                    issue.ElementId = show.Id.Value;
+                    issue.FamilyType = FamilyLabel(show);
+                    try { issue.Category = show.Category != null ? show.Category.Name : ""; } catch { }
+                    long first;
+                    if (!(show is ElementType)) issue.ShowId = show.Id.Value;
+                    else if (_typeFirstInstance.TryGetValue(show.Id.Value, out first)) issue.ShowId = first;
+                }
+                return issue;
+            };
 
             var inUse = new SortedSet<string>((useBound ? bound : Enumerable.Empty<string>()).Concat(useFilled ? filledByName.Keys : Enumerable.Empty<string>()), StringComparer.Ordinal);
             if (!useFilled) filledByName.Clear();   // con «assegnati» i conteggi non servono nei messaggi
@@ -231,13 +251,13 @@ namespace ModelProof
                 if (filledByName.TryGetValue(n, out c)) origin.Add(L.F("compilato su {0} elementi o tipi", c));
                 string where = string.Join(", ", origin);
                 if (!wanted.Contains(n))
-                    rr.Issues.Add(ControlIssue(rule, error, L.T("Parametro"), n, L.F("parametro condiviso in uso ({0}) non presente nell'elenco [{1}]", where, list.Name)));
+                    rr.Issues.Add(locate(n, ControlIssue(rule, error, L.T("Parametro"), n, L.F("parametro condiviso in uso ({0}) non presente nell'elenco [{1}]", where, list.Name))));
                 else
                 {
                     rr.Issues.Add(OkRow(rule, _info.FileName, _info.RoleText, L.T("Parametro"), n, where));
                     Guid g0;
                     if (!boundGuid.TryGetValue(n, out g0)) g0 = byGuid.Where(kv => kv.Value == n && filled.ContainsKey(kv.Key)).Select(kv => kv.Key).FirstOrDefault();
-                    CheckListedParameter(rule, rr, list, n, g0);
+                    CheckListedParameter(rule, rr, list, n, g0, i => locate(n, i));
                 }
 
                 // stesso nome, GUID diversi: conta solo se più GUID sono davvero usati (assegnato o compilato). Quello
@@ -276,7 +296,7 @@ namespace ModelProof
         /// è «disciplina.RUOLO», es. disciplina.IMP = MEP) e tipo di dato (colonna «colonna_tipo»: Testo, Lunghezza,
         /// Volume, Sì/No, Intero, Numero, Materiale, Url). Solo avvisi.
         /// </summary>
-        private void CheckListedParameter(Rule rule, RuleResult rr, CodeList list, string name, Guid guid)
+        private void CheckListedParameter(Rule rule, RuleResult rr, CodeList list, string name, Guid guid, Func<Issue, Issue> locate)
         {
             int cDisc = Column(rule, "colonna_disciplina", 0), cType = Column(rule, "colonna_tipo", 0);
             ConfigRow row = list.Rows.FirstOrDefault(r => string.Equals(r.Cell(0).Trim(), name, StringComparison.Ordinal));
@@ -287,8 +307,8 @@ namespace ModelProof
                 var allowed = row.Cell(cDisc - 1).Split(new[] { " e ", ",", ";", "/", "+" }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
                 if (allowed.Count > 0 && !allowed.Any(a => string.Equals(a, mine, StringComparison.OrdinalIgnoreCase)))
-                    rr.Issues.Add(ControlIssue(rule, false, L.T("Parametro"), name,
-                        L.F("parametro previsto per {0}, usato nel modello {1} ({2})", string.Join(", ", allowed), _info.RoleText, mine)));
+                    rr.Issues.Add(locate(ControlIssue(rule, false, L.T("Parametro"), name,
+                        L.F("parametro previsto per {0}, usato nel modello {1} ({2})", string.Join(", ", allowed), _info.RoleText, mine))));
             }
             if (cType > 0 && guid != Guid.Empty)
             {
@@ -300,8 +320,8 @@ namespace ModelProof
                     InternalDefinition d = sp != null ? sp.GetDefinition() : null;
                     ForgeTypeId actual = d != null ? d.GetDataType() : null;
                     if (actual != null && !actual.Equals(expected))
-                        rr.Issues.Add(ControlIssue(rule, false, L.T("Parametro"), name,
-                            L.F("tipo di dato «{0}», nell'elenco «{1}»", SpecLabel(actual), row.Cell(cType - 1).Trim())));
+                        rr.Issues.Add(locate(ControlIssue(rule, false, L.T("Parametro"), name,
+                            L.F("tipo di dato «{0}», nell'elenco «{1}»", SpecLabel(actual), row.Cell(cType - 1).Trim()))));
                 }
                 catch { }
             }
