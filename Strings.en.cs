@@ -272,6 +272,12 @@ namespace ModelProof
             d["famiglie: {0}"] = "families: {0}";
             d["Copia colonna «{0}»"] = "Copy column «{0}»";
             d["Copia «{0}»"] = "Copy «{0}»";
+            d["famiglia in place (modello generico)"] = "in-place family (generic model)";
+            d["famiglia in place"] = "in-place family";
+            d["modello generico: da controllare"] = "generic model: to be checked";
+            d["opzione di progetto «{0}»"] = "design option «{0}»";
+            d["{0} famiglie in place, {1} modelli generici"] = "{0} in-place families, {1} generic models";
+            d["Famiglia"] = "Family";
             d["Inquadra nella vista"] = "Zoom in view";
             d["Premi «Scegli a clic…» o «Scegli con riquadro…» e scegli in Revit gli elementi dei modelli collegati."] = "Press «Pick by click…» or «Pick by box…» and choose the linked elements in Revit.";
             d["Racchiudi in un riquadro gli elementi dei modelli collegati, poi «Fine» – Esc per annullare"] = "Drag a box around the linked elements, then «Finish» – Esc to cancel";

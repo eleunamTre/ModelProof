@@ -643,6 +643,7 @@ namespace ModelProof
                 case "funzione muri": CheckWallFunction(rule, rr); break;
                 case "classe ifc": CheckIfcClass(rule, rr); break;
                 case "sistema ifc": CheckIfcSystem(rule, rr); break;
+                case "generici e in place": CheckGenericAndInPlace(rule, rr); break;
                 case "coerenza nomi": CheckNameConsistency(rule, rr); break;
                 default: rr.Note = L.T("controllo non ancora disponibile in questa versione del plugin"); break;
             }

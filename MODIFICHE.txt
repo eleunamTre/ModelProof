@@ -295,3 +295,8 @@ ModelProof – registro delle modifiche
    selezionate, la stessa colonna di tutte, una per riga); poi «Copia righe» (tutte le colonne, con tabulazioni, per
    Excel), «Copia ID» e «Inquadra». Ctrl+C copia la colonna dell'ultimo clic. Il clic destro su una riga non selezionata
    la seleziona.
+
+42. Nuovo controllo «generici e in place» (come il nodo dello script Dynamo dell'utente): una riga per istanza 3D,
+   anche nelle opzioni di progetto secondarie (indicate nel messaggio); famiglie in place di qualsiasi categoria con
+   la gravità della regola, istanze delle categorie della chiave «categorie» (di base Generic Models) come avviso «da
+   controllare». Le annidate non contano. Nota della regola: quante in place e quanti generici.

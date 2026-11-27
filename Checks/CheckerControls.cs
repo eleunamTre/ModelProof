@@ -539,6 +539,50 @@ namespace ModelProof
             }
         }
 
+        // ------------------------------------------------------------------ modelli generici e famiglie in place
+
+        /// <summary>
+        /// Istanze 3D da guardare a mano (come nello script Dynamo dell'utente): famiglie in place di qualsiasi categoria
+        /// (gravità della regola, di solito errore) e istanze delle categorie «categorie» (di base Generic Models, avviso
+        /// «da controllare»). Comprese le opzioni di progetto secondarie, indicate nel messaggio. Una riga per istanza.
+        /// </summary>
+        private void CheckGenericAndInPlace(Rule rule, RuleResult rr)
+        {
+            bool error = rule.Severity == "errore";
+            var genericIds = new HashSet<long>();
+            List<string> cats = ProjectConfig.SplitList(rule.Get("categorie", "Generic Models"), ';');
+            foreach (string c in cats) foreach (long id in RevitUtil.CategoryIds(c)) genericIds.Add(id);
+            if (genericIds.Count == 0) genericIds.Add((long)BuiltInCategory.OST_GenericModel);
+            int inPlace = 0, generic = 0;
+            foreach (FamilyInstance fi in new FilteredElementCollector(_doc).OfClass(typeof(FamilyInstance))
+                         .WhereElementIsNotElementType().Cast<FamilyInstance>())
+            {
+                try
+                {
+                    if (fi.ViewSpecific || fi.Category == null || fi.Category.CategoryType != CategoryType.Model) continue;
+                    if (fi.SuperComponent != null) continue;                    // annidate: conta la famiglia che le contiene
+                    FamilySymbol sym = fi.Symbol;
+                    Family fam = sym != null ? sym.Family : null;
+                    bool isInPlace = fam != null && fam.IsInPlace;
+                    bool isGeneric = genericIds.Contains(fi.Category.Id.Value);
+                    if (!isInPlace && !isGeneric) continue;
+                    rr.Checked++;
+                    string option = "";
+                    try { if (fi.DesignOption != null && !fi.DesignOption.IsPrimary) option = fi.DesignOption.Name ?? ""; } catch { }
+                    string msg = isInPlace
+                        ? (isGeneric ? L.T("famiglia in place (modello generico)") : L.T("famiglia in place"))
+                        : L.T("modello generico: da controllare");
+                    if (option.Length > 0) msg += " – " + L.F("opzione di progetto «{0}»", option);
+                    Issue i = ControlIssue(rule, isInPlace ? error : false, L.T("Famiglia"), fam != null ? fam.Name ?? "" : "", msg, fi);
+                    i.FamilyType = (fam != null ? fam.Name + " : " : "") + (sym != null ? sym.Name : "");
+                    rr.Issues.Add(i);
+                    if (isInPlace) inPlace++; else generic++;
+                }
+                catch { }
+            }
+            if (inPlace + generic > 0) rr.Note = L.F("{0} famiglie in place, {1} modelli generici", inPlace, generic);
+        }
+
         // ------------------------------------------------------------------ sistema IFC dei sistemi impiantistici
 
         /// <summary>
