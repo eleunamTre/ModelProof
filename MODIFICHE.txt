@@ -283,3 +283,6 @@ ModelProof – registro delle modifiche
    senza tipo predefinito, es. IfcDistributionSystem, non conta) e se la classificazione di Revit, da cui
    l'esportatore ricava il sistema quando i parametri sono vuoti, non è tra quelle compatibili. Colonne vuote o
    classificazione non definita: aspetto non controllato.
+
+39. Finestra dei risultati: colonna «File» in fondo (ordinabile), così nelle righe dei collegamenti si vede di quale
+   file si parla e non solo il ruolo letto dal nome.

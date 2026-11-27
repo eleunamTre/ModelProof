@@ -112,6 +112,7 @@ namespace ModelProof
             _issues.Columns.Add(L.T("Campo"), 120);
             _issues.Columns.Add(L.T("Valore"), 160);
             _issues.Columns.Add(L.T("Stato"), 380);
+            _issues.Columns.Add(L.T("File"), 300);
             _issueHeaders = _issues.Columns.Cast<ColumnHeader>().Select(h => h.Text).ToArray();
             _issues.ColumnClick += (s, e) =>
             {
@@ -289,6 +290,7 @@ namespace ModelProof
                 case 4: return i => i.FamilyType ?? "";
                 case 5: return i => i.Field ?? "";
                 case 6: return i => i.Value ?? "";
+                case 8: return i => i.File ?? "";
                 default: return i => i.Message ?? "";
             }
         }
@@ -337,6 +339,7 @@ namespace ModelProof
                 it.SubItems.Add(i.Field);
                 it.SubItems.Add(i.Value);
                 it.SubItems.Add(i.Message);
+                it.SubItems.Add(i.File);
                 it.ForeColor = i.Priority == 0 ? Color.FromArgb(190, 40, 40) : i.Priority == 1 ? Color.FromArgb(120, 60, 170) : i.Priority == 2 ? Color.FromArgb(160, 90, 0) : Color.FromArgb(30, 120, 60);
                 _issues.Items.Add(it);
             }
